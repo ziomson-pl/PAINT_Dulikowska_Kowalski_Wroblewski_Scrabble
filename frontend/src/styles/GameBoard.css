@@ -1,0 +1,128 @@
+.board-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.board {
+  display: inline-block;
+  border: 3px solid #333;
+  background-color: #e8dcc4;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.board-row {
+  display: flex;
+}
+
+.board-cell {
+  width: 35px;
+  height: 35px;
+  border: 1px solid #bbb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.board-cell:hover:not(.filled) {
+  background-color: rgba(102, 126, 234, 0.2);
+}
+
+.board-cell.filled {
+  background-color: #f5e6d3;
+  cursor: default;
+}
+
+.board-cell.selected-placement {
+  background-color: #ffd700;
+  border: 2px solid #ff8c00;
+}
+
+.tile-on-board {
+  background-color: #f5e6d3;
+  width: 90%;
+  height: 90%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.center-star {
+  background-color: #ff69b4;
+  color: white;
+}
+
+.star {
+  font-size: 20px;
+  color: white;
+}
+
+.triple-word {
+  background-color: #ff6b6b;
+  color: white;
+  font-size: 9px;
+}
+
+.triple-word::after {
+  content: "3W";
+  position: absolute;
+  font-size: 9px;
+}
+
+.double-word {
+  background-color: #ffa07a;
+  color: white;
+  font-size: 9px;
+}
+
+.double-word::after {
+  content: "2W";
+  position: absolute;
+  font-size: 9px;
+}
+
+.triple-letter {
+  background-color: #4169e1;
+  color: white;
+  font-size: 9px;
+}
+
+.triple-letter::after {
+  content: "3L";
+  position: absolute;
+  font-size: 9px;
+}
+
+.double-letter {
+  background-color: #87ceeb;
+  color: white;
+  font-size: 9px;
+}
+
+.double-letter::after {
+  content: "2L";
+  position: absolute;
+  font-size: 9px;
+}
+
+@media (max-width: 768px) {
+  .board-cell {
+    width: 25px;
+    height: 25px;
+    font-size: 10px;
+  }
+
+  .tile-on-board {
+    font-size: 14px;
+  }
+}
