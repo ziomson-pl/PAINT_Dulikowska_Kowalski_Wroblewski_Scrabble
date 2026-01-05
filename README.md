@@ -102,6 +102,16 @@ cd backend
 docker-compose exec backend pytest
 ```
 
+
+### Database Access
+
+The application uses **PostgreSQL**. You can connect to it using the following credentials:
+- **Host**: `localhost`
+- **Port**: `5432`
+- **Database**: `scrabble`
+- **Username**: `scrabble_user`
+- **Password**: `scrabble_pass`
+
 ### API Endpoints
 
 #### Authentication

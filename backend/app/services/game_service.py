@@ -5,19 +5,21 @@ from sqlalchemy.orm import Session
 from app.models import Game, GamePlayer, Dictionary, GameMove
 
 # Scrabble tile distribution
+# Polish Scrabble tile distribution (100 tiles)
 TILE_DISTRIBUTION = {
-    'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 3, 'H': 2,
-    'I': 9, 'J': 1, 'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2,
-    'Q': 1, 'R': 6, 'S': 4, 'T': 6, 'U': 4, 'V': 2, 'W': 2, 'X': 1,
-    'Y': 2, 'Z': 1, '_': 2  # _ represents blank tiles
+    'A': 9, 'I': 8, 'E': 7, 'O': 6, 'Z': 5, 'N': 5, 'R': 4, 'W': 4,
+    'S': 4, 'C': 3, 'T': 3, 'Y': 4, 'K': 3, 'D': 3, 'P': 3, 'M': 3,
+    'U': 2, 'J': 2, 'L': 3, 'Ł': 2, 'G': 2, 'B': 2, 'H': 2, 'Ą': 1,
+    'Ę': 1, 'F': 1, 'Ś': 1, 'Ż': 1, 'Ź': 1, 'Ć': 1, 'Ń': 1, 'Ó': 1,
+    '_': 2  # Blanks
 }
 
-# Letter values for scoring
+# Polish Letter values
 LETTER_VALUES = {
-    'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4,
-    'I': 1, 'J': 8, 'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3,
-    'Q': 10, 'R': 1, 'S': 1, 'T': 1, 'U': 1, 'V': 4, 'W': 4, 'X': 8,
-    'Y': 4, 'Z': 10, '_': 0
+    'A': 1, 'I': 1, 'E': 1, 'O': 1, 'Z': 1, 'N': 1, 'R': 1, 'W': 1, 'S': 1,
+    'C': 2, 'T': 2, 'Y': 2, 'K': 2, 'D': 2, 'P': 2, 'M': 2, 'U': 3, 'J': 3,
+    'L': 2, 'Ł': 3, 'G': 3, 'B': 3, 'H': 3, 'F': 5, 'Ą': 5, 'Ę': 5, 'Ś': 5,
+    'Ż': 5, 'Ź': 9, 'Ć': 6, 'Ń': 7, 'Ó': 5, '_': 0
 }
 
 # Premium squares on the board
@@ -51,7 +53,7 @@ class GameService:
         return game
 
     def _initialize_bag(self) -> List[str]:
-        """Initialize the tile bag with standard Scrabble distribution"""
+        """Initialize the tile bag with Polish Scrabble distribution"""
         bag = []
         for letter, count in TILE_DISTRIBUTION.items():
             bag.extend([letter] * count)
@@ -107,11 +109,27 @@ class GameService:
 
     def _draw_tiles(self, game: Game, count: int) -> List[str]:
         """Draw tiles from the bag"""
+        bag = list(game.bag_tiles) if game.bag_tiles else []
         tiles = []
-        bag = game.bag_tiles or []
+        
+        # Shuffle bag before drawing to ensure randomness if previous shuffle wasn't effective
+        if not bag:
+           return []
+
+        # Draw tiles
         for _ in range(min(count, len(bag))):
-            tiles.append(bag.pop())
-        game.bag_tiles = bag
+            # Since bag is shuffled at init, popping from end is fine. 
+            # But let's pop randomly just to be super safe against any order issues.
+            idx = random.randint(0, len(bag) - 1)
+            tiles.append(bag.pop(idx))
+            
+        # VERY IMPORTANT: Re-assign to trigger SQLAlchemy JSON detection
+        game.bag_tiles = list(bag)
+        
+        # Commit happens in the caller usually, but to be safe for intermediate draws we can rely on session
+        # The key fix here is `list(bag)` creating a new object reference.
+        self.db.add(game) 
+        
         return tiles
 
     def make_move(self, game_id: int, user_id: int, tiles_played: List[Dict], is_pass: bool = False, is_exchange: bool = False, exchange_tiles: List[str] = None) -> Tuple[Optional[GameMove], Optional[str]]:

@@ -82,6 +82,15 @@ def start_game(game_id: int, db: Session = Depends(get_db), current_user: User =
     
     return {"message": "Game started"}
 
+@router.post("/{game_id}/end")
+def end_game(game_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Force end the game"""
+    service = GameService(db)
+    if not service.end_game(game_id, current_user.id):
+        raise HTTPException(status_code=400, detail="Cannot end game")
+    
+    return {"message": "Game ended"}
+
 @router.post("/{game_id}/moves", response_model=MoveResponse)
 def make_move(game_id: int, move: MoveCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Make a move in the game"""

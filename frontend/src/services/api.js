@@ -38,6 +38,7 @@ export const gameAPI = {
     api.post(`/api/games/${gameId}/moves`, moveData),
   getMoves: (gameId) => api.get(`/api/games/${gameId}/moves`),
   getMessages: (gameId) => api.get(`/api/games/${gameId}/messages`),
+  endGame: (gameId) => api.post(`/api/games/${gameId}/end`),
 };
 
 // Profile API

@@ -5,6 +5,7 @@ set -e
 echo "Cleaning up old containers..."
 echo "kuba" | sudo -S docker rm -f scrabble_db scrabble_backend scrabble_frontend || true
 echo "kuba" | sudo -S docker network rm scrabble_net || true
+echo "kuba" | sudo -S docker volume rm scrabble_postgres_data || true
 
 # Create network
 echo "Creating network..."
