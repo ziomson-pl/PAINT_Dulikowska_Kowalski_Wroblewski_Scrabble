@@ -17,8 +17,10 @@ function PlayerRack({ rack, selectedTiles, setSelectedTiles, disabled }) {
   };
 
   const handleTilePlacement = (row, col) => {
-    // Note: In this MVP, tiles are selected from rack and then placed individually on the board
-    // For production, consider drag-and-drop or multi-step tile placement UI
+    // MVP Limitation: This function is currently not used in the Game component.
+    // Tiles are placed by selecting them in the rack, then clicking board cells individually.
+    // For production, implement proper drag-and-drop or sequential multi-tile placement.
+    // Current flow: User selects tiles -> clicks board cell -> Game component handles placement
     if (selectedRackTiles.length === 0) return;
 
     const newTiles = selectedRackTiles.map(index => ({

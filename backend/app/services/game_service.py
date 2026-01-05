@@ -1,5 +1,6 @@
 import random
 from typing import List, Dict, Optional, Tuple
+from collections import Counter
 from sqlalchemy.orm import Session
 from app.models import Game, GamePlayer, Dictionary, GameMove
 
@@ -176,7 +177,6 @@ class GameService:
         rack = player.rack or []
         
         # Validate tiles are in rack
-        from collections import Counter
         tiles_to_place = [t['letter'] for t in tiles_played]
         rack_counter = Counter(rack)
         tiles_counter = Counter(tiles_to_place)
