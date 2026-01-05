@@ -69,14 +69,19 @@ A full-stack, dockerized Scrabble game implementation for the PAINT course at Wa
    ```
 
 2. **Start the application**:
+   Use the provided start script to build and run the application. This script handles container cleanup, network creation, and correct startup order better than standard docker-compose for this project setup.
    ```bash
-   docker-compose up --build
+   bash start_app.sh
    ```
 
-   This will:
-   - Build and start PostgreSQL database
-   - Build and start FastAPI backend (with automatic database seeding)
-   - Build and start React frontend
+   *Note: You may be prompted for your password as the script uses `sudo` to manage Docker containers.*
+
+   The script will:
+   - Clean up any existing Scrabble containers
+   - Create a dedicated Docker network
+   - Start the PostgreSQL database
+   - Build and start the Backend (FastAPI)
+   - Build and start the Frontend (React/Vite)
 
 3. **Access the application**:
    - Frontend: http://localhost:3000
