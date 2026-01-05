@@ -109,8 +109,7 @@ class GameService:
         tiles = []
         bag = game.bag_tiles or []
         for _ in range(min(count, len(bag))):
-            if bag:
-                tiles.append(bag.pop())
+            tiles.append(bag.pop())
         game.bag_tiles = bag
         return tiles
 
@@ -177,13 +176,19 @@ class GameService:
         rack = player.rack or []
         
         # Validate tiles are in rack
+        from collections import Counter
         tiles_to_place = [t['letter'] for t in tiles_played]
+        rack_counter = Counter(rack)
+        tiles_counter = Counter(tiles_to_place)
+        
+        for tile, count in tiles_counter.items():
+            if rack_counter[tile] < count:
+                return None, f"Not enough {tile} tiles in rack"
+        
+        # Remove tiles from rack
         temp_rack = rack.copy()
         for tile in tiles_to_place:
-            if tile in temp_rack:
-                temp_rack.remove(tile)
-            else:
-                return None, f"Tile {tile} not in rack"
+            temp_rack.remove(tile)
         
         # Place tiles on board
         placed_positions = []
@@ -249,18 +254,30 @@ class GameService:
         """Find all words formed by the placed tiles"""
         words = []
         
-        # Check if tiles are in a line
+        # Check if tiles are in a line and contiguous
         if not placed_positions:
             return words
         
-        rows = [pos[0] for pos in placed_positions]
-        cols = [pos[1] for pos in placed_positions]
+        rows = sorted([pos[0] for pos in placed_positions])
+        cols = sorted([pos[1] for pos in placed_positions])
         
-        # Horizontal word
-        if len(set(rows)) == 1:
+        # Check if all in same row or same column
+        same_row = len(set(rows)) == 1
+        same_col = len(set(cols)) == 1
+        
+        if not same_row and not same_col:
+            return words  # Invalid placement
+        
+        # Verify contiguity (including existing tiles)
+        if same_row:
             row = rows[0]
             min_col = min(cols)
             max_col = max(cols)
+            
+            # Check if all positions between min and max have tiles
+            for col in range(min_col, max_col + 1):
+                if board[row][col] is None:
+                    return words  # Gap found, invalid
             
             # Extend to full word
             while min_col > 0 and board[row][min_col - 1] is not None:
@@ -283,10 +300,15 @@ class GameService:
                     words.append(vertical_word)
         
         # Vertical word
-        elif len(set(cols)) == 1:
+        elif same_col:
             col = cols[0]
             min_row = min(rows)
             max_row = max(rows)
+            
+            # Check if all positions between min and max have tiles
+            for row in range(min_row, max_row + 1):
+                if board[row][col] is None:
+                    return words  # Gap found, invalid
             
             # Extend to full word
             while min_row > 0 and board[min_row - 1][col] is not None:

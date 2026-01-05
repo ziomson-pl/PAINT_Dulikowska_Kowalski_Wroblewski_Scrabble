@@ -16,7 +16,9 @@ function PlayerRack({ rack, selectedTiles, setSelectedTiles, disabled }) {
     }
   };
 
-  const handlePlaceTile = (row, col) => {
+  const handleTilePlacement = (row, col) => {
+    // Note: In this MVP, tiles are selected from rack and then placed individually on the board
+    // For production, consider drag-and-drop or multi-step tile placement UI
     if (selectedRackTiles.length === 0) return;
 
     const newTiles = selectedRackTiles.map(index => ({

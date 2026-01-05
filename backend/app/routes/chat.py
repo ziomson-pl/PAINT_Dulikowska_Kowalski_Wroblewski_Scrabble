@@ -7,6 +7,10 @@ import json
 from app.models import ChatMessage, User, Game
 from database import get_db, SessionLocal
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 class ConnectionManager:
@@ -86,7 +90,7 @@ async def websocket_chat(websocket: WebSocket, game_id: int):
     except WebSocketDisconnect:
         manager.disconnect(websocket, game_id)
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        logger.error(f"WebSocket error: {e}")
         manager.disconnect(websocket, game_id)
     finally:
         db.close()
