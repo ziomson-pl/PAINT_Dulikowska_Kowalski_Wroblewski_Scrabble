@@ -3,17 +3,17 @@ set -e
 
 # Cleanup
 echo "Cleaning up old containers..."
-echo "kuba" | sudo -S docker rm -f scrabble_db scrabble_backend scrabble_frontend || true
-echo "kuba" | sudo -S docker network rm scrabble_net || true
-echo "kuba" | sudo -S docker volume rm scrabble_postgres_data || true
+sudo docker rm -f scrabble_db scrabble_backend scrabble_frontend || true
+sudo docker network rm scrabble_net || true
+sudo docker volume rm scrabble_postgres_data || true
 
 # Create network
 echo "Creating network..."
-echo "kuba" | sudo -S docker network create scrabble_net
+sudo docker network create scrabble_net
 
 # Start Database
 echo "Starting Database..."
-echo "kuba" | sudo -S docker run -d \
+sudo docker run -d \
   --name scrabble_db \
   --network scrabble_net \
   -e POSTGRES_DB=scrabble \
@@ -28,10 +28,10 @@ sleep 5
 
 # Build and Start Backend
 echo "Building Backend..."
-echo "kuba" | sudo -S docker build -t scrabble_backend ./backend
+sudo docker build -t scrabble_backend ./backend
 
 echo "Starting Backend..."
-echo "kuba" | sudo -S docker run -d \
+sudo docker run -d \
   --name scrabble_backend \
   --network scrabble_net \
   -e DATABASE_URL=postgresql://scrabble_user:scrabble_pass@scrabble_db:5432/scrabble \
@@ -45,11 +45,11 @@ echo "kuba" | sudo -S docker run -d \
 
 # Build and Start Frontend
 echo "Building Frontend..."
-echo "kuba" | sudo -S docker build -t scrabble_frontend ./frontend
+sudo docker build -t scrabble_frontend ./frontend
 
 echo "Starting Frontend..."
 # Note: Anonymous volume for node_modules to preserve installed deps
-echo "kuba" | sudo -S docker run -d \
+sudo docker run -d \
   --name scrabble_frontend \
   --network scrabble_net \
   -e REACT_APP_API_URL=http://localhost:8000 \
