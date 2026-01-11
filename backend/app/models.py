@@ -69,7 +69,7 @@ class Dictionary(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     word = Column(String(15), unique=True, index=True, nullable=False)
-    language = Column(String(10), default="EN")
+    language = Column(String(10), default="PL")
 
 class Ranking(Base):
     __tablename__ = "rankings"
