@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Text, JSON
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -68,8 +69,13 @@ class Dictionary(Base):
     __tablename__ = "dictionary"
 
     id = Column(Integer, primary_key=True, index=True)
-    word = Column(String(15), unique=True, index=True, nullable=False)
-    language = Column(String(10), default="PL")
+    word = Column(String(50), nullable=False)
+    language = Column(String(10), default="PL", nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('word', 'language', name='uq_word_language'),
+    )
+
 
 class Ranking(Base):
     __tablename__ = "rankings"
