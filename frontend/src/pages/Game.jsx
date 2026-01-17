@@ -120,41 +120,55 @@ function Game() {
 
     if (over && over.data.current) {
       const { row, col } = over.data.current;
-      const { tile, index: rackIndex } = active.data.current;
+      const { tile, index: rackIndex, fromBoard, row: boardRow, col: boardCol, isPlacedThisTurn } = active.data.current;
 
-      // Check if cell is occupied by board tile
+      // Check if cell is occupied by board tile (permanent)
       if (game.board_state[row][col]) {
         return;
       }
 
-      // Check if cell is occupied by another selected tile
-      const existingIndex = selectedTiles.findIndex(t => t.row === row && t.col === col);
-
-      const newTile = {
-        letter: tile,
-        row,
-        col,
-        is_blank: tile === '_',
-        rackIndex // Track which tile from rack is used
-      };
-
+      let newTile;
       let newSelectedTiles = [...selectedTiles];
 
-      // Remove any previous placement of THIS same tile (if moved from one board cell to another, 
-      // but currently we only support Rack -> Board. If we support dragging from board, 'active' would need source info).
-      // Since active.data.current.fromRack is true, we check if this rackIndex is already placed somewhere
-      const previousPlacementIndex = newSelectedTiles.findIndex(t => t.rackIndex === rackIndex);
-      if (previousPlacementIndex >= 0) {
-        newSelectedTiles.splice(previousPlacementIndex, 1);
+      if (fromBoard && isPlacedThisTurn) {
+        // Moving a tile that was placed this turn
+        // Remove the old placement
+        const oldPlacementIndex = newSelectedTiles.findIndex(t => t.row === boardRow && t.col === boardCol);
+        if (oldPlacementIndex >= 0) {
+          newSelectedTiles.splice(oldPlacementIndex, 1);
+        }
+
+        // Create new tile placement at new position
+        const oldTile = newSelectedTiles.find(t => t.row === boardRow && t.col === boardCol) || 
+                       selectedTiles.find(t => t.row === boardRow && t.col === boardCol);
+        
+        newTile = {
+          letter: tile,
+          row,
+          col,
+          is_blank: tile === '_',
+          rackIndex: oldTile?.rackIndex // Preserve original rack index
+        };
+      } else {
+        // Dragging from rack
+        newTile = {
+          letter: tile,
+          row,
+          col,
+          is_blank: tile === '_',
+          rackIndex // Track which tile from rack is used
+        };
+
+        // Remove any previous placement of THIS same tile from rack
+        const previousPlacementIndex = newSelectedTiles.findIndex(t => t.rackIndex === rackIndex);
+        if (previousPlacementIndex >= 0) {
+          newSelectedTiles.splice(previousPlacementIndex, 1);
+        }
       }
 
-      // If dropped on occupied cell (by selection), replace it? Or reject?
-      // Let's replace validation:
+      // If dropped on occupied cell (by selection), replace it
       const occupiedBySelection = newSelectedTiles.findIndex(t => t.row === row && t.col === col);
       if (occupiedBySelection >= 0) {
-        // If we want to replace, we remove the old one. But that tile should go back to rack.
-        // For simplicity, let's just replace it in the array. The old tile "returns" to rack visually 
-        // because it's no longer in selectedTiles.
         newSelectedTiles.splice(occupiedBySelection, 1);
       }
 
