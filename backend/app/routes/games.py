@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
+from pydantic import ValidationError
 
 from app.models import User, Game, GamePlayer, GameMove
 from app.schemas import GameCreate, GameResponse, GameDetailResponse, MoveCreate, MoveResponse, PlayerInfo
@@ -9,6 +11,33 @@ from app.services.game_service import GameService
 from database import get_db
 
 router = APIRouter(prefix="/api/games", tags=["games"])
+
+# Add exception handler for validation errors
+@router.post("/{game_id}/moves", response_model=MoveResponse)
+def make_move(game_id: int, move: MoveCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Make a move in the game"""
+    try:
+        service = GameService(db)
+        
+        tiles_played = [tile.dict() for tile in move.tiles] if move.tiles else []
+        exchange_tiles = move.exchange_tiles if move.is_exchange else None
+        
+        game_move, error = service.make_move(
+            game_id,
+            current_user.id,
+            tiles_played,
+            move.is_pass,
+            move.is_exchange,
+            exchange_tiles
+        )
+        
+        if error:
+            raise HTTPException(status_code=400, detail=error)
+        
+        return game_move
+    except ValidationError as e:
+        print(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("", response_model=GameResponse)
 def create_game(game: GameCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -90,28 +119,6 @@ def end_game(game_id: int, db: Session = Depends(get_db), current_user: User = D
         raise HTTPException(status_code=400, detail="Cannot end game")
     
     return {"message": "Game ended"}
-
-@router.post("/{game_id}/moves", response_model=MoveResponse)
-def make_move(game_id: int, move: MoveCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Make a move in the game"""
-    service = GameService(db)
-    
-    tiles_played = [tile.dict() for tile in move.tiles] if move.tiles else []
-    exchange_tiles = move.exchange_tiles if move.is_exchange else None
-    
-    game_move, error = service.make_move(
-        game_id,
-        current_user.id,
-        tiles_played,
-        move.is_pass,
-        move.is_exchange,
-        exchange_tiles
-    )
-    
-    if error:
-        raise HTTPException(status_code=400, detail=error)
-    
-    return game_move
 
 @router.get("/{game_id}/moves", response_model=List[MoveResponse])
 def get_moves(game_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

@@ -1,7 +1,9 @@
 import random
 from typing import List, Dict, Optional, Tuple
 from collections import Counter
+from datetime import datetime
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from app.models import Game, GamePlayer, Dictionary, GameMove
 
 # Scrabble tile distribution
@@ -107,6 +109,30 @@ class GameService:
         self.db.commit()
         return True
 
+    def end_game(self, game_id: int, user_id: int) -> bool:
+        """End the game (any player in the game can end it)"""
+        game = self.db.query(Game).filter(Game.id == game_id).first()
+        if not game:
+            return False
+        
+        # Check if user is in the game
+        player = self.db.query(GamePlayer).filter(
+            GamePlayer.game_id == game_id,
+            GamePlayer.user_id == user_id
+        ).first()
+        if not player:
+            return False
+        
+        # Only allow ending active or waiting games
+        if game.status not in ["waiting", "active"]:
+            return False
+        
+        # Set game status to finished
+        game.status = "finished"
+        game.finished_at = datetime.utcnow()
+        self.db.commit()
+        return True
+
     def _draw_tiles(self, game: Game, count: int) -> List[str]:
         """Draw tiles from the bag"""
         bag = list(game.bag_tiles) if game.bag_tiles else []
@@ -134,9 +160,12 @@ class GameService:
 
     def make_move(self, game_id: int, user_id: int, tiles_played: List[Dict], is_pass: bool = False, is_exchange: bool = False, exchange_tiles: List[str] = None) -> Tuple[Optional[GameMove], Optional[str]]:
         """Process a player's move"""
+        # Refresh game from database to ensure we have latest state
         game = self.db.query(Game).filter(Game.id == game_id).first()
-        if not game or game.status != "active":
-            return None, "Game not active"
+        if not game:
+            return None, "Game not found"
+        if game.status != "active":
+            return None, f"Game not active (status: {game.status})"
         
         player = self.db.query(GamePlayer).filter(
             GamePlayer.game_id == game_id,
@@ -145,10 +174,26 @@ class GameService:
         if not player:
             return None, "Player not in game"
         
-        # Check if it's player's turn
-        current_player_count = self.db.query(GamePlayer).filter(GamePlayer.game_id == game_id).count()
-        expected_player_order = game.current_turn % current_player_count
-        if player.player_order != expected_player_order:
+        # Refresh player to ensure we have latest data
+        self.db.refresh(player)
+        
+        # Check if it's player's turn - refresh game to get latest current_turn
+        self.db.refresh(game)
+        # Get all active players sorted by player_order
+        active_players = self.db.query(GamePlayer).filter(
+            GamePlayer.game_id == game_id,
+            GamePlayer.is_active == True
+        ).order_by(GamePlayer.player_order).all()
+        
+        if not active_players:
+            return None, "No active players in game"
+        
+        # The active_players list is in order 0, 1, 2, ... (player_order)
+        # So current_turn % len(active_players) gives us the index in this list
+        current_player_index = game.current_turn % len(active_players)
+        current_player_id = active_players[current_player_index].id
+        
+        if player.id != current_player_id:
             return None, "Not your turn"
         
         # Handle pass
@@ -191,8 +236,12 @@ class GameService:
             return move, None
         
         # Validate and place tiles
-        board = game.board_state
+        # Work on a copy of the board to avoid modifying game state on validation errors
+        board = [row[:] for row in game.board_state] if game.board_state else [[None for _ in range(15)] for _ in range(15)]
         rack = player.rack or []
+        
+        # Check if this is the first move (board is empty)
+        is_first_move = all(all(cell is None for cell in row) for row in board)
         
         # Validate tiles are in rack
         tiles_to_place = [t['letter'] for t in tiles_played]
@@ -220,13 +269,29 @@ class GameService:
             }
             placed_positions.append((row, col))
         
+        # Validate first move must go through center (7,7)
+        if is_first_move:
+            goes_through_center = any(row == 7 and col == 7 for row, col in placed_positions)
+            if not goes_through_center:
+                # Revert board
+                for row, col in placed_positions:
+                    board[row][col] = None
+                return None, "First move must go through the center square (7,7)"
+        
         # Validate word formation
         words = self._find_words(board, placed_positions)
         if not words:
             # Revert board
             for row, col in placed_positions:
                 board[row][col] = None
-            return None, "No valid words formed"
+            # Provide more specific error message
+            if is_first_move:
+                return None, "No valid words formed. First move must form at least one valid word."
+            # Check if tiles are connected to existing words (for non-first moves)
+            has_connection = self._tiles_connect_to_existing(board, placed_positions)
+            if not has_connection:
+                return None, "Tiles must connect to existing words on the board"
+            return None, "No valid words formed. Tiles must form at least one valid word."
         
         # Validate all words in dictionary
         for word in words:
@@ -239,8 +304,9 @@ class GameService:
         # Calculate score
         score = self._calculate_score(board, placed_positions, tiles_played)
         
-        # Update game state
-        game.board_state = board
+        # Update game state - create new list to ensure SQLAlchemy detects the change
+        game.board_state = [row[:] for row in board]  # Deep copy to ensure change detection
+        flag_modified(game, "board_state")  # Explicitly mark as modified for JSON column
         player.score += score
         player.rack = temp_rack
         
@@ -383,6 +449,28 @@ class GameService:
                 word += board[r][col]['letter']
         
         return word
+
+    def _tiles_connect_to_existing(self, board: List[List], placed_positions: List[Tuple[int, int]]) -> bool:
+        """Check if placed tiles connect to existing tiles on the board"""
+        for row, col in placed_positions:
+            # Check adjacent positions (up, down, left, right)
+            adjacent_positions = [
+                (row - 1, col),  # up
+                (row + 1, col),  # down
+                (row, col - 1),  # left
+                (row, col + 1)   # right
+            ]
+            
+            for adj_row, adj_col in adjacent_positions:
+                # Check bounds
+                if 0 <= adj_row < 15 and 0 <= adj_col < 15:
+                    # If adjacent cell has a tile that's not in our placed positions, we're connected
+                    if board[adj_row][adj_col] is not None:
+                        # Check if this adjacent tile is not one we just placed
+                        if (adj_row, adj_col) not in placed_positions:
+                            return True
+        
+        return False
 
     def _calculate_score(self, board: List[List], placed_positions: List[Tuple[int, int]], tiles_played: List[Dict]) -> int:
         """Calculate score for placed tiles"""
