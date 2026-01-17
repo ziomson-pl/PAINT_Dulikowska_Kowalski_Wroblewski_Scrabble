@@ -74,9 +74,14 @@ function Game() {
     try {
       await gameAPI.makeMove(gameId, { tiles: [], is_pass: true });
       setSelectedTiles([]);
-      loadGame();
+      setError('');
+      // Refresh game state to get updated turn
+      await loadGame();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Ruch nieprawidłowy');
+      const errorMsg = err.response?.data?.detail || 'Ruch nieprawidłowy';
+      setError(errorMsg);
+      // Refresh game state even on error to get latest turn info
+      loadGame();
     }
   };
 
@@ -87,17 +92,26 @@ function Game() {
     }
 
     // Remap selectedTiles to expected format (remove rackIndex if backend doesn't need it)
+    // IMPORTANT: Ensure row and col are integers, not strings
     const tilesToSend = selectedTiles.map(({ letter, row, col, is_blank }) => ({
-      letter, row, col, is_blank
+      letter, 
+      row: parseInt(row), 
+      col: parseInt(col), 
+      is_blank: Boolean(is_blank)
     }));
 
     try {
       await gameAPI.makeMove(gameId, { tiles: tilesToSend, is_pass: false });
+      // Only clear selected tiles and error after successful move
       setSelectedTiles([]);
       setError('');
-      loadGame();
+      // Refresh game state to show updated board
+      await loadGame();
     } catch (err) {
+      // On error, keep selected tiles so user can fix and retry
       setError(err.response?.data?.detail || 'Ruch nieprawidłowy');
+      // Still refresh game state in case turn changed
+      loadGame();
     }
   };
 

@@ -1,13 +1,22 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
+import logging
 
 from app.routes import auth, games, profile, chat
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Scrabble Game API", version="1.0.0")
+logger.info("FastAPI application started")
 
 # Configure CORS
 app.add_middleware(
