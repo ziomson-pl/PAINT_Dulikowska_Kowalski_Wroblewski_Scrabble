@@ -15,6 +15,8 @@ function Game() {
   const [selectedTiles, setSelectedTiles] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [exchangeMode, setExchangeMode] = useState(false);
+  const [selectedExchangeTiles, setSelectedExchangeTiles] = useState([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -82,6 +84,45 @@ function Game() {
       setError(errorMsg);
       // Refresh game state even on error to get latest turn info
       loadGame();
+    }
+  };
+
+  const handleExchange = async () => {
+    if (selectedExchangeTiles.length === 0) {
+      setError('Nie wybrano liter do wymiany');
+      return;
+    }
+
+    try {
+      const tilesToExchange = selectedExchangeTiles.map(index => game.rack[index]);
+      await gameAPI.makeMove(gameId, {
+        tiles: [],
+        is_exchange: true,
+        exchange_tiles: tilesToExchange
+      });
+      setSelectedExchangeTiles([]);
+      setExchangeMode(false);
+      setError('');
+      await loadGame();
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || 'Wymiana liter nie udała się';
+      setError(errorMsg);
+      loadGame();
+    }
+  };
+
+  const toggleExchangeMode = () => {
+    if (exchangeMode) {
+      setSelectedExchangeTiles([]);
+    }
+    setExchangeMode(!exchangeMode);
+  };
+
+  const toggleExchangeTile = (index) => {
+    if (selectedExchangeTiles.includes(index)) {
+      setSelectedExchangeTiles(selectedExchangeTiles.filter(i => i !== index));
+    } else {
+      setSelectedExchangeTiles([...selectedExchangeTiles, index]);
     }
   };
 
@@ -296,29 +337,59 @@ function Game() {
                 <PlayerRack
                   rack={getDisplayRack()}
                   disabled={!isMyTurn()}
+                  isExchangeMode={exchangeMode}
+                  selectedExchangeTiles={selectedExchangeTiles}
+                  onToggleExchangeTile={toggleExchangeTile}
                 />
 
                 <div className="game-controls">
-                  <button
-                    onClick={handlePlayWord}
-                    disabled={!isMyTurn() || selectedTiles.length === 0}
-                    className="btn-primary"
-                  >
-                    Zagraj Słowo
-                  </button>
-                  <button
-                    onClick={handlePass}
-                    disabled={!isMyTurn()}
-                    className="btn-secondary"
-                  >
-                    Pasuj
-                  </button>
-                  <button
-                    onClick={() => setSelectedTiles([])}
-                    className="btn-secondary"
-                  >
-                    Wyczyść
-                  </button>
+                  {!exchangeMode ? (
+                    <>
+                      <button
+                        onClick={handlePlayWord}
+                        disabled={!isMyTurn() || selectedTiles.length === 0}
+                        className="btn-primary"
+                      >
+                        Zagraj Słowo
+                      </button>
+                      <button
+                        onClick={handlePass}
+                        disabled={!isMyTurn()}
+                        className="btn-secondary"
+                      >
+                        Pasuj
+                      </button>
+                      <button
+                        onClick={toggleExchangeMode}
+                        disabled={!isMyTurn()}
+                        className="btn-secondary"
+                      >
+                        Wymień Litery
+                      </button>
+                      <button
+                        onClick={() => setSelectedTiles([])}
+                        className="btn-secondary"
+                      >
+                        Wyczyść
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleExchange}
+                        disabled={selectedExchangeTiles.length === 0}
+                        className="btn-primary"
+                      >
+                        Potwierdź Wymianę ({selectedExchangeTiles.length})
+                      </button>
+                      <button
+                        onClick={toggleExchangeMode}
+                        className="btn-secondary"
+                      >
+                        Anuluj
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={handleEndGame}
                     className="btn-danger"

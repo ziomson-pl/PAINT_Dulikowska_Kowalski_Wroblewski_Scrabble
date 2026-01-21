@@ -250,6 +250,8 @@ class GameService:
             new_tiles = self._draw_tiles(game, len(exchange_tiles))
             rack.extend(new_tiles)
             player.rack = rack
+            flag_modified(player, "rack")
+            flag_modified(game, "bag_tiles")
             
             move = GameMove(
                 game_id=game_id,
@@ -337,6 +339,7 @@ class GameService:
         flag_modified(game, "board_state")  # Explicitly mark as modified for JSON column
         player.score += score
         player.rack = temp_rack
+        flag_modified(player, "rack")
         
         # Draw new tiles
         new_tiles = self._draw_tiles(game, len(tiles_played))
