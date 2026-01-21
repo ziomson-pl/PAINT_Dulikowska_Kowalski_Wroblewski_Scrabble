@@ -6,6 +6,10 @@ import '../styles/Lobby.css';
 function Lobby() {
   const [games, setGames] = useState([]);
   const [error, setError] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [gameName, setGameName] = useState('');
+  const [dictionary, setDictionary] = useState('PL');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const username = localStorage.getItem('username');
 
@@ -28,12 +32,24 @@ function Lobby() {
     }
   };
 
-  const handleCreateGame = async () => {
+  const handleCreateGame = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
     try {
-      const response = await gameAPI.createGame();
+      const response = await gameAPI.createGame({
+        game_name: gameName || null,
+        dictionary: dictionary
+      });
+      setGameName('');
+      setDictionary('PL');
+      setShowCreateForm(false);
       navigate(`/game/${response.data.id}`);
     } catch (err) {
       setError('Failed to create game');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,9 +84,50 @@ function Lobby() {
 
       <div className="lobby-content">
         <div className="create-game-section">
-          <button onClick={handleCreateGame} className="btn-primary btn-large">
-            Create New Game
-          </button>
+          {!showCreateForm ? (
+            <button onClick={() => setShowCreateForm(true)} className="btn-primary btn-large">
+              Create New Game
+            </button>
+          ) : (
+            <form onSubmit={handleCreateGame} className="create-game-form">
+              <h3>Create a New Game</h3>
+              <div className="form-group">
+                <label htmlFor="gameName">Game Name (optional):</label>
+                <input
+                  type="text"
+                  id="gameName"
+                  value={gameName}
+                  onChange={(e) => setGameName(e.target.value)}
+                  placeholder="e.g., Friendly Match"
+                  maxLength="100"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="dictionary">Dictionary:</label>
+                <select
+                  id="dictionary"
+                  value={dictionary}
+                  onChange={(e) => setDictionary(e.target.value)}
+                >
+                  <option value="PL">Polish</option>
+                  <option value="EN">English</option>
+                </select>
+              </div>
+              <div className="form-actions">
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading ? 'Creating...' : 'Create Game'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(false)}
+                  className="btn-secondary"
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         <div className="games-list">
@@ -81,7 +138,8 @@ function Lobby() {
             <div className="games-grid">
               {games.map((game) => (
                 <div key={game.id} className="game-card">
-                  <h3>Game #{game.id}</h3>
+                  <h3>{game.game_name ? game.game_name : `Game #${game.id}`}</h3>
+                  <p>Dictionary: <span className="dict-tag">{game.dictionary}</span></p>
                   <p>Status: <span className={`status-${game.status}`}>{game.status}</span></p>
                   <p>Players: {game.players.length}/4</p>
                   <div className="players-list">

@@ -40,10 +40,13 @@ def make_move(game_id: int, move: MoveCreate, db: Session = Depends(get_db), cur
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("", response_model=GameResponse)
-def create_game(game: GameCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_game(game_data: GameCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Create a new game"""
     service = GameService(db)
-    game = service.create_game()
+    game = service.create_game(
+        game_name=game_data.game_name,
+        dictionary=game_data.dictionary
+    )
     
     # Automatically join as first player
     service.join_game(game.id, current_user.id)
@@ -143,6 +146,8 @@ def format_game_response(game: Game, db: Session) -> dict:
     
     return {
         "id": game.id,
+        "game_name": game.game_name,
+        "dictionary": game.dictionary,
         "status": game.status,
         "current_turn": game.current_turn,
         "board_state": game.board_state,

@@ -131,14 +131,12 @@ function Game() {
       let newSelectedTiles = [...selectedTiles];
 
       if (fromBoard && isPlacedThisTurn) {
-        // Moving a tile that was placed this turn
-        // Remove the old placement
+
         const oldPlacementIndex = newSelectedTiles.findIndex(t => t.row === boardRow && t.col === boardCol);
         if (oldPlacementIndex >= 0) {
           newSelectedTiles.splice(oldPlacementIndex, 1);
         }
 
-        // Create new tile placement at new position
         const oldTile = newSelectedTiles.find(t => t.row === boardRow && t.col === boardCol) || 
                        selectedTiles.find(t => t.row === boardRow && t.col === boardCol);
         
@@ -147,7 +145,7 @@ function Game() {
           row,
           col,
           is_blank: tile === '_',
-          rackIndex: oldTile?.rackIndex // Preserve original rack index
+          rackIndex: oldTile?.rackIndex 
         };
       } else {
         // Dragging from rack
@@ -258,7 +256,10 @@ function Game() {
     <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
       <div className="game-container">
         <header className="game-header">
-          <h1>Scrabble Gra #{gameId}</h1>
+          <h1>Scrabble {game.game_name ? game.game_name : `Gra #${gameId}`}</h1>
+          <div className="game-meta">
+            <span className="dict-badge">Dictionary: {game.dictionary || 'PL'}</span>
+          </div>
           <button onClick={() => navigate('/lobby')} className="btn-secondary">
             Powrót do Lobby
           </button>
