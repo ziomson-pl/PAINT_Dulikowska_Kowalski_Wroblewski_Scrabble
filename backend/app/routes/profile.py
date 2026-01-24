@@ -38,30 +38,6 @@ def get_rankings(db: Session = Depends(get_db), current_user: User = Depends(get
     
     return result
 
-@router.post(
-    "/rankings/{user_id}/score",
-    response_model=RankingResponse
-)
-def add_total_score(
-    user_id: int,
-    data: TotalScoreUpdateCreate,
-    db: Session = Depends(get_db),
-):
-    """Add score to user's total score"""
-
-    service = RankingService(db)
-
-    ranking, error = service.add_score(
-        user_id=user_id,
-        score=data.score
-    )
-
-    if error:
-        raise HTTPException(status_code=400, detail=error)
-
-    return ranking
-
-
 
 @router.get("/history", response_model=List[GameHistoryResponse])
 def get_history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

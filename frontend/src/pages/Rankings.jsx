@@ -42,7 +42,7 @@ function Rankings() {
             <tr>
               <th>Miejsce</th>
               <th>Gracz</th>
-              <th>Wynik</th>
+              <th>Punkty</th>
               <th>Gry</th>
               <th>Wygrane</th>
               <th>Przegrane</th>
