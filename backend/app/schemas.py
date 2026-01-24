@@ -108,6 +108,9 @@ class RankingResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class TotalScoreUpdateCreate(BaseModel):
+    score: int = Field(..., ge=0)
+
 # History schemas
 class GameHistoryResponse(BaseModel):
     id: int

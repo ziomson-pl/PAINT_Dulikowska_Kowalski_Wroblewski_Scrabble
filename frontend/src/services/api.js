@@ -64,6 +64,8 @@ export const gameAPI = {
 export const profileAPI = {
   getProfile: () => api.get('/api/profile'),
   getRankings: () => api.get('/api/rankings'),
+  updateTotalScore: (userId, score) =>
+    api.post(`/api/rankings/${userId}/score`, { score }),
   getHistory: () => api.get('/api/history'),
 };
 

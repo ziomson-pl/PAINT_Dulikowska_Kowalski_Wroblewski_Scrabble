@@ -66,11 +66,27 @@ function Game() {
     if (!window.confirm("Czy na pewno chcesz zakończyć grę?")) return;
     try {
       await gameAPI.endGame(gameId);
-      loadGame();
+  
+      const response = await gameAPI.getGame(gameId);
+      const finishedGame = response.data;
+      setGame(finishedGame);
+  
+      if (finishedGame.players && finishedGame.players.length > 0) {
+        await Promise.all(
+          finishedGame.players.map(player =>
+            profileAPI.updateTotalScore(player.id, player.score)
+          )
+        );
+      }
+  
+      loadProfile();
+  
     } catch (err) {
-      setError('Nie udało się zakończyć gry');
+      const errorMsg = err.response?.data?.detail || 'Nie udało się zakończyć gry';
+      setError(errorMsg);
     }
   };
+  
 
   const handlePass = async () => {
     try {
@@ -299,7 +315,7 @@ function Game() {
         <header className="game-header">
           <h1>Scrabble {game.game_name ? game.game_name : `Gra #${gameId}`}</h1>
           <div className="game-meta">
-            <span className="dict-badge">Dictionary: {game.dictionary || 'PL'}</span>
+            <span className="dict-badge">Słownik: {game.dictionary || 'PL'}</span>
           </div>
           <button onClick={() => navigate('/lobby')} className="btn-secondary">
             Powrót do Lobby
