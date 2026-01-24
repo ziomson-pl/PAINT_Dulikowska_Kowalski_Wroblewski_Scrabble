@@ -24,15 +24,15 @@ function Rankings() {
   };
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <div className="loading">Ładowanie...</div>;
   }
 
   return (
     <div className="rankings-container">
       <header className="rankings-header">
-        <h1>Global Rankings</h1>
+        <h1>Globalne rankingi</h1>
         <button onClick={() => navigate('/lobby')} className="btn-secondary">
-          Back to Lobby
+          Powrót do Lobby
         </button>
       </header>
 
@@ -40,15 +40,15 @@ function Rankings() {
         <table className="rankings-table">
           <thead>
             <tr>
-              <th>Rank</th>
-              <th>Player</th>
-              <th>Rating</th>
-              <th>Games</th>
-              <th>Wins</th>
-              <th>Losses</th>
-              <th>Win Rate</th>
-              <th>Total Score</th>
-              <th>Highest Score</th>
+              <th>Miejsce</th>
+              <th>Gracz</th>
+              <th>Wynik</th>
+              <th>Gry</th>
+              <th>Wygrane</th>
+              <th>Przegrane</th>
+              <th>Procent wygranych</th>
+              <th>Całkowity wynik</th>
+              <th>Najwyższy wynik</th>
             </tr>
           </thead>
           <tbody>
