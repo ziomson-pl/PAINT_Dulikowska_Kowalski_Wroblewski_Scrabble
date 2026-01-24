@@ -57,6 +57,26 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+.tile-on-board.draggable {
+  cursor: grab;
+  transition: all 0.2s;
+  border: 2px solid #667eea;
+}
+
+.tile-on-board.draggable:hover {
+  background-color: #e8d4c0;
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+  transform: scale(1.05);
+}
+
+.tile-on-board.draggable:active {
+  cursor: grabbing;
+}
+
+.tile-on-board.fixed {
+  cursor: default;
+}
+
 .center-star {
   background-color: #ff69b4;
   color: white;

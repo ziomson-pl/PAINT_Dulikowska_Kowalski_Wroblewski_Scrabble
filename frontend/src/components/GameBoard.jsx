@@ -1,5 +1,6 @@
 import React from 'react';
-import { useDroppable } from '@dnd-kit/core';
+import { useDroppable, useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import '../styles/GameBoard.css';
 
 // Premium square positions
@@ -12,7 +13,7 @@ const DOUBLE_LETTER = [[0, 3], [0, 11], [2, 6], [2, 8], [3, 0], [3, 7], [3, 14],
 [6, 6], [6, 8], [6, 12], [7, 3], [7, 11], [8, 2], [8, 6], [8, 8],
 [8, 12], [11, 0], [11, 7], [11, 14], [12, 6], [12, 8], [14, 3], [14, 11]];
 
-function DroppableCell({ row, col, children, className }) {
+function DroppableCell({ row, col, children, className, isPlacedTile }) {
   const { isOver, setNodeRef } = useDroppable({
     id: `cell-${row}-${col}`,
     data: { row, col }
@@ -33,6 +34,37 @@ function DroppableCell({ row, col, children, className }) {
   );
 }
 
+function DraggableBoardTile({ letter, row, col, isPlacedThisTurn }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `board-tile-${row}-${col}`,
+    data: { 
+      tile: letter, 
+      row, 
+      col, 
+      fromBoard: true,
+      isPlacedThisTurn: isPlacedThisTurn 
+    },
+    disabled: !isPlacedThisTurn
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...(isPlacedThisTurn ? listeners : {})}
+      {...(isPlacedThisTurn ? attributes : {})}
+      className={`tile-on-board ${isPlacedThisTurn ? 'draggable' : 'fixed'}`}
+    >
+      {letter}
+    </div>
+  );
+}
+
 function GameBoard({ board, selectedTiles }) {
   if (!board || board.length === 0) {
     return <div>Ładowanie planszy...</div>;
@@ -48,7 +80,7 @@ function GameBoard({ board, selectedTiles }) {
       return classes.join(' ');
     }
 
-    // Check if this is a selected position (temporarily placed)
+    // Check if this is a selected position (temporarily placed this turn)
     const isSelected = selectedTiles.some(t => t.row === row && t.col === col);
     if (isSelected) {
       classes.push('selected-placement');
@@ -88,16 +120,16 @@ function GameBoard({ board, selectedTiles }) {
   };
 
   const getTileToDisplay = (row, col) => {
-    // Check if there's a selected tile at this position
+    // Check if there's a selected tile at this position (placed this turn)
     const selectedTile = selectedTiles.find(t => t.row === row && t.col === col);
     if (selectedTile) {
-      return selectedTile.letter;
+      return { letter: selectedTile.letter, isPlacedThisTurn: true };
     }
 
-    // Check if there's a board tile
+    // Check if there's a board tile (permanent)
     const boardTile = board[row][col];
     if (boardTile) {
-      return boardTile.letter;
+      return { letter: boardTile.letter, isPlacedThisTurn: false };
     }
 
     return null;
@@ -116,11 +148,15 @@ function GameBoard({ board, selectedTiles }) {
                   row={rowIndex}
                   col={colIndex}
                   className={getCellClass(rowIndex, colIndex)}
+                  isPlacedTile={tileToDisplay && !tileToDisplay.isPlacedThisTurn}
                 >
                   {tileToDisplay && (
-                    <div className="tile-on-board">
-                      {tileToDisplay}
-                    </div>
+                    <DraggableBoardTile
+                      letter={tileToDisplay.letter}
+                      row={rowIndex}
+                      col={colIndex}
+                      isPlacedThisTurn={tileToDisplay.isPlacedThisTurn}
+                    />
                   )}
                   {!tileToDisplay && rowIndex === 7 && colIndex === 7 && (
                     <span className="star">★</span>

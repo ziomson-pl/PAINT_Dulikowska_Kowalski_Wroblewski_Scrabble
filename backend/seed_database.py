@@ -1,7 +1,8 @@
 import sys
 import time
 import os
-from sqlalchemy import create_engine
+import io
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert
@@ -14,22 +15,41 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PL_FILE = os.path.join(BASE_DIR, "slownik.txt")
 EN_FILE = os.path.join(BASE_DIR, "dictionary.txt")
 
-with open(PL_FILE, encoding="utf-8") as f:
-    COMMON_WORDS_PL = [line.strip().upper() for line in f if line.strip()]
 
-with open(EN_FILE, encoding="utf-8") as f:
-    COMMON_WORDS_EN = [line.strip().upper() for line in f if line.strip()]
-
-
-def seed_dictionary(db: Session, words: list[str], language="PL"):
-    records = [
-        {"word": w.strip().upper(), "language": language}
-        for w in words
-        if w.strip()
-    ]
-
-    db.bulk_insert_mappings(Dictionary, records)
-    db.commit()
+def seed_dictionary_copy(db: Session, filepath: str, language="PL"):
+    """Fast bulk loading using PostgreSQL COPY command"""
+    print(f"Loading {language} dictionary from {filepath} using COPY...")
+    
+    try:
+        # Read file and create CSV format in memory
+        csv_buffer = io.StringIO()
+        with open(filepath, encoding="utf-8") as f:
+            for line in f:
+                word = line.strip().upper()
+                if word:
+                    # Format: word\tlanguage (tab-separated for COPY)
+                    csv_buffer.write(f"{word}\t{language}\n")
+        
+        csv_buffer.seek(0)
+        
+        # Get raw connection for COPY command
+        raw_connection = db.connection().connection
+        cursor = raw_connection.cursor()
+        
+        # Use COPY command for fast bulk insert
+        cursor.copy_expert(
+            "COPY dictionary (word, language) FROM STDIN",
+            csv_buffer
+        )
+        
+        raw_connection.commit()
+        cursor.close()
+        
+        print(f"✓ {language} dictionary loaded successfully")
+        
+    except Exception as e:
+        print(f"✗ Error loading {language} dictionary: {e}")
+        raise
 
 def seed_users(db):
     test_users = [
@@ -91,17 +111,25 @@ def seed_database():
     db = SessionLocal()
 
     try:
-        # Seed dictionary - COMMENT OUT AND RELACE COMMON_WORDS WITH SOME SMALL LIST OF WORDS FOR TESTING
-        seed_dictionary(db, COMMON_WORDS_PL, "PL")
-        seed_dictionary(db, COMMON_WORDS_EN, "EN")
-
-        # Seed users
+        # ===== HYBRID APPROACH: CHECK IF DICTIONARY IS ALREADY SEEDED =====
+        existing_words = db.query(Dictionary).first()
+        
+        if existing_words is not None:
+            print("✓ Dictionary already seeded, skipping...")
+        else:
+            print("Dictionary empty, seeding with fast COPY command...")
+            # Seed dictionary using COPY (50-100x faster than Python inserts)
+            seed_dictionary_copy(db, PL_FILE, "PL")
+            seed_dictionary_copy(db, EN_FILE, "EN")
+            print("✓ Dictionary seeding completed")
+        
+        # Seed users (idempotent - checks if user exists)
         seed_users(db)
 
-        print("Database seeding completed!")
+        print("✓ Database seeding completed!")
 
     except Exception as e:
-        print(f"Error seeding database: {e}")
+        print(f"✗ Error seeding database: {e}")
         db.rollback()
         sys.exit(1)
     finally:

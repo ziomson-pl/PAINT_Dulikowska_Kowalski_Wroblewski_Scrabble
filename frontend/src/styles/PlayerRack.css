@@ -51,6 +51,28 @@
   cursor: not-allowed;
 }
 
+.rack-tile.exchange-mode {
+  cursor: pointer;
+  border: 3px dashed #ff6b6b;
+  background-color: #ffe8e8;
+}
+
+.rack-tile.exchange-mode:hover {
+  transform: translateY(-5px);
+  background-color: #ffd4d4;
+}
+
+.rack-tile.exchange-selected {
+  background-color: #ff6b6b;
+  color: white;
+  border: 3px solid #ff0000;
+  transform: scale(1.1);
+}
+
+.rack-tile.exchange-selected .tile-value {
+  color: white;
+}
+
 .tile-value {
   position: absolute;
   bottom: 2px;

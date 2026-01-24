@@ -30,7 +30,8 @@ class TokenData(BaseModel):
 
 # Game schemas
 class GameCreate(BaseModel):
-    pass
+    game_name: Optional[str] = Field(None, max_length=100)
+    dictionary: str = Field("PL", pattern="^(PL|EN)$")  # PL for Polish, EN for English
 
 class TilePlacement(BaseModel):
     letter: str
@@ -64,6 +65,8 @@ class PlayerInfo(BaseModel):
 
 class GameResponse(BaseModel):
     id: int
+    game_name: Optional[str] = None
+    dictionary: Optional[str] = None
     status: str
     current_turn: int
     board_state: Optional[List[List[Optional[Dict[str, Any]]]]]

@@ -21,6 +21,8 @@ class Game(Base):
     __tablename__ = "games"
 
     id = Column(Integer, primary_key=True, index=True)
+    game_name = Column(String(100), nullable=True)
+    dictionary = Column(String(10), default="PL", nullable=False)  # PL or EN
     status = Column(String(20), default="waiting")  # waiting, active, finished
     current_turn = Column(Integer, default=0)
     board_state = Column(JSON, nullable=True)  # 15x15 board

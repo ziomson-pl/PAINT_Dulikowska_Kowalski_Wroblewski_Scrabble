@@ -3,24 +3,31 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import '../styles/PlayerRack.css';
 
-function DraggableTile({ tile, index, disabled }) {
+function DraggableTile({ tile, index, disabled, isExchangeMode, isSelected, onToggleSelect }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: `rack-tile-${index}`,
     data: { tile, index, fromRack: true },
-    disabled: disabled
+    disabled: disabled || isExchangeMode
   });
 
   const style = {
     transform: CSS.Translate.toString(transform),
   };
 
+  const handleClick = () => {
+    if (isExchangeMode && !disabled) {
+      onToggleSelect(index);
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
-      className={`rack-tile ${disabled ? 'disabled' : ''}`}
+      {...(isExchangeMode ? {} : listeners)}
+      {...(isExchangeMode ? {} : attributes)}
+      onClick={handleClick}
+      className={`rack-tile ${disabled ? 'disabled' : ''} ${isExchangeMode && isSelected ? 'exchange-selected' : ''} ${isExchangeMode ? 'exchange-mode' : ''}`}
     >
       {tile}
       <span className="tile-value">{getTileValue(tile)}</span>
@@ -28,7 +35,7 @@ function DraggableTile({ tile, index, disabled }) {
   );
 }
 
-function PlayerRack({ rack, disabled }) {
+function PlayerRack({ rack, disabled, isExchangeMode, selectedExchangeTiles, onToggleExchangeTile }) {
   return (
     <div className="rack-container">
       <h3>Twoje Litery</h3>
@@ -40,6 +47,9 @@ function PlayerRack({ rack, disabled }) {
               tile={tile}
               index={index}
               disabled={disabled}
+              isExchangeMode={isExchangeMode}
+              isSelected={selectedExchangeTiles.includes(index)}
+              onToggleSelect={onToggleExchangeTile}
             />
           ))
         ) : (
@@ -47,7 +57,9 @@ function PlayerRack({ rack, disabled }) {
         )}
       </div>
       <div className="rack-info">
-        Przeciągnij litery na planszę, aby ułożyć słowo.
+        {isExchangeMode 
+          ? 'Kliknij na litery, które chcesz wymienić'
+          : 'Przeciągnij litery na planszę, aby ułożyć słowo.'}
       </div>
     </div>
   );

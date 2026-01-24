@@ -16,7 +16,7 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
@@ -35,12 +35,24 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 def authenticate_user(db: Session, username: str, password: str):
-    user = db.query(User).filter(User.username == username).first()
-    if not user:
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        user = db.query(User).filter(User.username == username).first()
+        if not user:
+            logger.debug(f"User not found: {username}")
+            return False
+        
+        if not verify_password(password, user.hashed_password):
+            logger.debug(f"Password verification failed for user: {username}")
+            return False
+        
+        logger.debug(f"Authentication successful for user: {username}")
+        return user
+    except Exception as e:
+        logger.error(f"Error during authentication for {username}: {str(e)}", exc_info=True)
         return False
-    if not verify_password(password, user.hashed_password):
-        return False
-    return user
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
