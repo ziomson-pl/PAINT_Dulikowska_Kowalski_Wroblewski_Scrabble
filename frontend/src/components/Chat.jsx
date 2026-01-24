@@ -63,7 +63,7 @@ function Chat({ gameId }) {
 
   return (
     <div className="chat-container">
-      <h3>Chat</h3>
+      <h3>Czat</h3>
       <div className="chat-messages">
         {messages.map((msg, index) => (
           <div 
@@ -86,12 +86,12 @@ function Chat({ gameId }) {
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message..."
+          placeholder="Wpisz wiadomość..."
           maxLength={500}
           className="chat-input"
         />
         <button type="submit" className="btn-primary chat-send-btn">
-          Send
+          Wyślij
         </button>
       </form>
     </div>

@@ -330,7 +330,7 @@ function Game() {
               {isMyTurn() && <div className="turn-indicator">Twoja kolej!</div>}
             </div>
 
-            {error && <div className="error-message">{error}</div>}
+            {/* {error && <div className="error-message">{error}</div>} */}
 
             {game.status === 'waiting' && (
               <div className="waiting-section">
