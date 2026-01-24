@@ -70,7 +70,7 @@ function Game() {
       const response = await gameAPI.getGame(gameId);
       const finishedGame = response.data;
       setGame(finishedGame);
-  
+
       if (finishedGame.players && finishedGame.players.length > 0) {
         await Promise.all(
           finishedGame.players.map(player =>

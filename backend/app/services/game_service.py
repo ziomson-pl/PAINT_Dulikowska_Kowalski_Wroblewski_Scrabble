@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 from app.models import Game, GamePlayer, Dictionary, GameMove
+from app.services.ranking_service import RankingService
 
 # Polish Scrabble tile distribution (100 tiles)
 POLISH_TILE_DISTRIBUTION = {
@@ -137,29 +138,56 @@ class GameService:
         self.db.commit()
         return True
 
+    from datetime import datetime, timezone
+
     def end_game(self, game_id: int, user_id: int) -> bool:
-        """End the game (any player in the game can end it)"""
         game = self.db.query(Game).filter(Game.id == game_id).first()
         if not game:
             return False
-        
-        # Check if user is in the game
+
         player = self.db.query(GamePlayer).filter(
             GamePlayer.game_id == game_id,
             GamePlayer.user_id == user_id
         ).first()
         if not player:
             return False
-        
-        # Only allow ending active or waiting games
+
+        if game.status == "finished":
+            return False
+
         if game.status not in ["waiting", "active"]:
             return False
-        
-        # Set game status to finished
-        game.status = "finished"
-        game.finished_at = datetime.utcnow()
-        self.db.commit()
-        return True
+
+        players = (
+            self.db.query(GamePlayer)
+            .filter(GamePlayer.game_id == game_id)
+            .all()
+        )
+        if not players:
+            return False
+
+        try:
+            game.status = "finished"
+            game.finished_at = datetime.utcnow()
+
+            max_score = max(p.score for p in players)
+            ranking_service = RankingService(self.db)
+
+            for gp in players:
+                ranking_service.update_after_game(
+                    user_id=gp.user_id,
+                    score=gp.score,
+                    is_winner=(gp.score == max_score)
+                )
+
+            self.db.commit()
+            return True
+
+        except Exception as e:
+            self.db.rollback()
+            print("END GAME ERROR:", e)
+            raise
+
 
     def _draw_tiles(self, game: Game, count: int) -> List[str]:
         """Draw tiles from the bag"""
