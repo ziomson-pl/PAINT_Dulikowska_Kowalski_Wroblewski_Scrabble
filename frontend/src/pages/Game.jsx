@@ -29,9 +29,13 @@ function Game() {
   useEffect(() => {
     loadGame();
     loadProfile();
-    const interval = setInterval(loadGame, 2000); // Refresh every 2 seconds
+  
+    if (game?.status !== 'active') return;
+  
+    const interval = setInterval(loadGame, 2000);
     return () => clearInterval(interval);
-  }, [gameId]);
+  }, [gameId, game?.status]);
+  
 
   const loadGame = async () => {
     try {
@@ -327,7 +331,9 @@ function Game() {
             <div className="game-info">
               <h3>Status: {game.status === 'waiting' ? 'Oczekiwanie' : game.status === 'active' ? 'W toku' : 'Zakończona'}</h3>
               <h3>Tura: {game.current_turn + 1}</h3>
-              {isMyTurn() && <div className="turn-indicator">Twoja kolej!</div>}
+              {game.status === 'active' && isMyTurn() && (
+                <div className="turn-indicator">Twoja kolej!</div>
+              )}
             </div>
 
             {/* {error && <div className="error-message">{error}</div>} */}
@@ -434,8 +440,9 @@ function Game() {
                 <div key={idx} className="player-info">
                   <span className="player-name">{player.username}</span>
                   <span className="player-score">Wynik: {player.score}</span>
-                  {player.player_order === (game.current_turn % game.players.length) && (
-                    <span className="current-turn-marker">▶</span>
+                  {game.status === 'active' &&
+                    player.player_order === (game.current_turn % game.players.length) && (
+                      <span className="current-turn-marker">▶</span>
                   )}
                 </div>
               ))}
