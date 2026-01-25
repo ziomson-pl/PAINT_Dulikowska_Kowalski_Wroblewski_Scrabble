@@ -38,11 +38,6 @@ backend/
 
 ## Główna Aplikacja (`main.py`)
 
-```python
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-```
-
 ### Konfiguracja
 - **Tytuł API**: `Scrabble Game API`
 - **Wersja**: `1.0.0`
@@ -51,10 +46,10 @@ from fastapi.middleware.cors import CORSMiddleware
 ### Zarejestrowane Routery
 | Prefix | Moduł | Opis |
 |--------|-------|------|
-| `/api/auth` | `routes.auth` | Autentykacja użytkowników |
-| `/api/games` | `routes.games` | Zarządzanie grami |
-| `/api` | `routes.profile` | Profil i rankingi |
-| `/ws/chat` | `routes.chat` | WebSocket czatu |
+| `/api/auth` | `auth.router` | Autentykacja użytkowników |
+| `/api/games` | `games.routes` | Zarządzanie grami |
+| `/api` | `profile.routes` | Profil i rankingi |
+| `/ws/chat` | `chat.routes` | WebSocket czatu |
 
 ### Endpointy Systemowe
 | Metoda | Ścieżka | Opis |
@@ -64,7 +59,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 ---
 
-## Autentykacja (`app/auth.py`)
+## Uwierzytelnienie (`app/auth.py`)
 
 ### Technologie
 - **JWT (JSON Web Tokens)** - biblioteka `python-jose`
@@ -90,107 +85,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 ## Modele Bazy Danych (`app/models.py`)
 
-### User (Użytkownik)
-```python
-class User(Base):
-    __tablename__ = "users"
-    
-    id: int              # Primary key
-    username: str        # Unikalna nazwa (max 50 znaków)
-    email: str           # Unikalny email (max 100 znaków)
-    hashed_password: str # Zahashowane hasło
-    created_at: datetime # Data utworzenia
-```
+Plik zawiera modele tabel odpowiadające bazie danych.
 
-### Game (Gra)
-```python
-class Game(Base):
-    __tablename__ = "games"
-    
-    id: int              # Primary key
-    game_name: str       # Opcjonalna nazwa gry (max 100 znaków)
-    dictionary: str      # "PL" lub "EN"
-    status: str          # "waiting", "active", "finished"
-    current_turn: int    # Numer aktualnej tury
-    board_state: JSON    # Stan planszy 15x15
-    bag_tiles: JSON      # Pozostałe płytki w worku
-    created_at: datetime # Data utworzenia
-    finished_at: datetime # Data zakończenia (opcjonalna)
-```
-
-### GamePlayer (Gracz w Grze)
-```python
-class GamePlayer(Base):
-    __tablename__ = "game_players"
-    
-    id: int              # Primary key
-    game_id: int         # FK do Game
-    user_id: int         # FK do User
-    player_order: int    # Kolejność gracza (0-3)
-    score: int           # Wynik gracza
-    rack: JSON           # Płytki na stojaku (lista 7 liter)
-    is_active: bool      # Czy gracz jest aktywny
-```
-
-### GameMove (Ruch w Grze)
-```python
-class GameMove(Base):
-    __tablename__ = "game_moves"
-    
-    id: int              # Primary key
-    game_id: int         # FK do Game
-    user_id: int         # FK do User
-    move_number: int     # Numer ruchu
-    word: str            # Utworzone słowo (max 15 znaków)
-    tiles_played: JSON   # Zagrane płytki [{"letter", "row", "col", "is_blank"}]
-    score: int           # Punkty za ruch
-    is_pass: bool        # Czy to był pas
-    is_exchange: bool    # Czy to była wymiana
-    created_at: datetime # Czas ruchu
-```
-
-### Dictionary (Słownik)
-```python
-class Dictionary(Base):
-    __tablename__ = "dictionary"
-    
-    id: int              # Primary key
-    word: str            # Słowo (max 50 znaków)
-    language: str        # "PL" lub "EN"
-    
-    # Constraint: unikalna kombinacja (word, language)
-```
-
-### Ranking
-```python
-class Ranking(Base):
-    __tablename__ = "rankings"
-    
-    id: int              # Primary key
-    user_id: int         # FK do User (unique)
-    total_games: int     # Łączna liczba gier
-    wins: int            # Wygrane
-    losses: int          # Przegrane
-    total_score: int     # Suma wszystkich punktów
-    highest_score: int   # Najwyższy wynik w jednej grze
-    rating: int          # Ranking (startowy: 1000)
-```
-
-### ChatMessage (Wiadomość Czatu)
-```python
-class ChatMessage(Base):
-    __tablename__ = "chat_messages"
-    
-    id: int              # Primary key
-    game_id: int         # FK do Game
-    user_id: int         # FK do User
-    message: str         # Treść wiadomości (TEXT)
-    created_at: datetime # Czas wysłania
-```
-
----
-
-## API Endpointy
+## API Endpointy (`/routes/auth.py`)
 
 ### Autentykacja (`/api/auth`)
 
@@ -368,11 +265,6 @@ Blanki (`_`) są traktowane jako wildcards. System używa wyrażeń regularnych 
 rating = total_score * wins / total_games
 ```
 
-### Aktualizacja po Grze
-- **Wygrana**: `rating += 10`
-- **Przegrana**: `rating -= 5`
-- **Nowy rekord punktowy**: aktualizacja `highest_score`
-
 ---
 
 ## Inicjalizacja Bazy Danych (`seed_database.py`)
@@ -395,17 +287,9 @@ Skrypt automatycznie uruchamiany przy starcie kontenera.
 
 ---
 
-## Zależności (`requirements.txt`)
+## Zależności
 
-```
-fastapi==0.110.0
-uvicorn==0.27.1
-sqlalchemy==2.0.25
-psycopg2-binary==2.9.9
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-pydantic[email]==2.5.3
-```
+Obecne w pliku `requirements.txt`.
 
 ---
 
@@ -475,8 +359,8 @@ sequenceDiagram
 |-----|------|
 | 400 | Nieprawidłowe dane wejściowe / błąd logiki gry |
 | 401 | Brak autoryzacji / nieprawidłowy token |
-| 403 | Brak dostępu (np. nie twoja tura) |
-| 404 | Nie znaleziono zasobu |
+| 403 | Nie w tej grze |
+| 404 | Gra nieznaleziona |
 | 500 | Błąd serwera |
 
 ### Przykładowe Komunikaty Błędów

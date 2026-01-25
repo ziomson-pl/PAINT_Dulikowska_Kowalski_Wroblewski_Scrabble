@@ -48,10 +48,8 @@ class RankingService:
 
         if is_winner:
             ranking.wins += 1
-            ranking.rating += 10
         else:
             ranking.losses += 1
-            ranking.rating -= 5
         ranking.rating = ranking.total_score * ranking.wins / ranking.total_games
 
         return ranking

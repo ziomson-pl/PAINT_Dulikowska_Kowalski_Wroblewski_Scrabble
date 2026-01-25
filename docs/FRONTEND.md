@@ -52,7 +52,7 @@ frontend/src/
 
 ### Konfiguracja
 ```javascript
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'http://scrabble_backend:8000');
 ```
 
 ### authAPI
@@ -66,11 +66,14 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 - `joinGame(gameId)` - Dołączenie
 - `startGame(gameId)` - Start gry
 - `makeMove(gameId, moveData)` - Ruch
+- `getMoves(gameId)` - Ruchy graczy
+- `getMessages(gameId)` - Czat
 - `endGame(gameId)` - Zakończenie
 
 ### profileAPI
 - `getProfile()` - Profil użytkownika
 - `getRankings()` - Rankingi
+- `updateTotalScore(userId, score)` - Aktualizuj ranking
 - `getHistory()` - Historia gier
 
 ## Serwis Chat (`services/chat.js`)
@@ -93,7 +96,7 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
 | `selectedTiles` | Płytki umieszczone w turze |
 | `exchangeMode` | Tryb wymiany liter |
 
-### Funkcje
+### Przykładowe funkcje
 | Funkcja | Opis |
 |---------|------|
 | `handleDragEnd()` | Obsługa upuszczenia płytki |
@@ -126,13 +129,6 @@ Plansza 15x15 z polami premium.
 ## PlayerRack (`components/PlayerRack.jsx`)
 
 Stojak gracza z 7 literami.
-
-### Props
-| Prop | Opis |
-|------|------|
-| `rack` | Litery (null = użyta) |
-| `disabled` | Nie twoja tura |
-| `isExchangeMode` | Tryb wymiany |
 
 ### Wartości Liter (Polski)
 ```javascript
@@ -168,16 +164,8 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+CMD ["npm", "start"]
 ```
-
-## Komendy NPM
-
-| Komenda | Opis |
-|---------|------|
-| `npm run start` | Dev server (port 3000) |
-| `npm run build` | Build produkcyjny |
-| `npm run lint` | ESLint |
 
 ## Lokalizacja (Polski)
 

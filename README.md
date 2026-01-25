@@ -7,11 +7,11 @@ Wieloosobowa gra Scrabble dostępna w przeglądarce. Graj z przyjaciółmi w cza
 
 ## ✨ Funkcjonalności
 
-- 🎯 Pełna rozgrywka Scrabble dla 2-4 graczy
-- 🇵🇱 Polski i angielski słownik
-- 🖱️ Intuicyjny interfejs drag-and-drop
-- 💬 Czat w czasie rzeczywistym
-- 🏆 System rankingowy i statystyki
+- Pełna rozgrywka Scrabble dla 2-4 graczy
+- Polski i angielski słownik
+- Intuicyjny interfejs drag-and-drop
+- Czat w czasie rzeczywistym
+- System rankingowy i statystyki
 
 ## 🚀 Szybki Start
 
@@ -78,9 +78,9 @@ Po uruchomieniu aplikacja będzie dostępna pod adresami:
 
 Szczegółowa dokumentacja techniczna:
 
-- 📘 [**Backend**](docs/BACKEND.md) — API, modele, serwisy, autentykacja
-- 📗 [**Frontend**](docs/FRONTEND.md) — komponenty React, routing, UI
-- 📙 [**Baza danych**](docs/DATABASE.md) — schemat tabel, relacje, ERD
+-  [**Backend**](docs/BACKEND.md) — API, modele, serwisy, autentykacja
+- [**Frontend**](docs/FRONTEND.md) — komponenty React, routing, UI
+- [**Baza danych**](docs/DATABASE.md) — schemat tabel, relacje, ERD
 
 ## 👥 Autorzy
 
