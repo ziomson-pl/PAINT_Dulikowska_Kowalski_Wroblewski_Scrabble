@@ -15,7 +15,6 @@ router = APIRouter()
 
 class ConnectionManager:
     def __init__(self):
-        # game_id -> list of websocket connections
         self.active_connections: Dict[int, List[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, game_id: int):
@@ -50,11 +49,9 @@ async def websocket_chat(websocket: WebSocket, game_id: int):
     
     try:
         while True:
-            # Receive message
             data = await websocket.receive_text()
             message_data = json.loads(data)
             
-            # Extract user info and message
             username = message_data.get("username")
             user_id = message_data.get("user_id")
             message_text = message_data.get("message")
@@ -62,12 +59,10 @@ async def websocket_chat(websocket: WebSocket, game_id: int):
             if not username or not message_text or not user_id:
                 continue
             
-            # Verify game exists
             game = db.query(Game).filter(Game.id == game_id).first()
             if not game:
                 continue
             
-            # Save message to database
             chat_message = ChatMessage(
                 game_id=game_id,
                 user_id=user_id,
@@ -77,7 +72,6 @@ async def websocket_chat(websocket: WebSocket, game_id: int):
             db.commit()
             db.refresh(chat_message)
             
-            # Broadcast message to all connections in this game
             broadcast_data = {
                 "id": chat_message.id,
                 "user_id": user_id,

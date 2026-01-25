@@ -12,7 +12,6 @@ from database import get_db
 
 router = APIRouter(prefix="/api/games", tags=["games"])
 
-# Add exception handler for validation errors
 @router.post("/{game_id}/moves", response_model=MoveResponse)
 def make_move(game_id: int, move: MoveCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Make a move in the game"""
@@ -48,10 +47,8 @@ def create_game(game_data: GameCreate, db: Session = Depends(get_db), current_us
         dictionary=game_data.dictionary
     )
     
-    # Automatically join as first player
     service.join_game(game.id, current_user.id)
     
-    # Reload game with players
     db.refresh(game)
     
     return format_game_response(game, db)
@@ -69,7 +66,6 @@ def get_game(game_id: int, db: Session = Depends(get_db), current_user: User = D
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
     
-    # Get player's info
     player = db.query(GamePlayer).filter(
         GamePlayer.game_id == game_id,
         GamePlayer.user_id == current_user.id
@@ -99,7 +95,6 @@ def join_game(game_id: int, db: Session = Depends(get_db), current_user: User = 
 @router.post("/{game_id}/start")
 def start_game(game_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Start the game"""
-    # Verify user is in the game
     player = db.query(GamePlayer).filter(
         GamePlayer.game_id == game_id,
         GamePlayer.user_id == current_user.id
