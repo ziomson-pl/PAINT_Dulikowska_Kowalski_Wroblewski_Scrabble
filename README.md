@@ -1,187 +1,95 @@
-# PAINT - Scrabble Game
+# 🎮 Scrabble Online
 
-A full-stack, dockerized Scrabble game implementation for the PAINT course at Warsaw University of Technology.
+Wieloosobowa gra Scrabble dostępna w przeglądarce. Graj z przyjaciółmi w czasie rzeczywistym!
 
-## Features
+![Screenshot gry](img/game_screenshot.png)
+<!-- Dodaj screenshot planszy gry do folderu /img -->
 
-### Frontend (React + JavaScript)
-- **Authentication**: Login and registration pages with JWT token management
-- **Lobby**: Browse and join available games, create new games
-- **Game Board**: Interactive 15x15 Scrabble board with premium squares (double/triple word/letter)
-- **Player Rack**: Display and manage your 7 tiles
-- **Real-time Chat**: WebSocket-based chat for each game
-- **Profile**: View game history and personal statistics
-- **Rankings**: Global leaderboard with player ratings and statistics
+## ✨ Funkcjonalności
 
-### Backend (Python FastAPI)
-- **Game Logic**: Complete Scrabble rules implementation
-  - Tile distribution and scoring
-  - Word validation against dictionary
-  - Premium square multipliers
-  - Turn management (up to 4 players per game)
-- **Authentication**: JWT-based user authentication
-- **REST API**: Endpoints for all game operations
-- **WebSocket**: Real-time chat functionality
-- **Database**: PostgreSQL for persistent storage
+- 🎯 Pełna rozgrywka Scrabble dla 2-4 graczy
+- 🇵🇱 Polski i angielski słownik
+- 🖱️ Intuicyjny interfejs drag-and-drop
+- 💬 Czat w czasie rzeczywistym
+- 🏆 System rankingowy i statystyki
 
-### Database (PostgreSQL)
-- Users and authentication
-- Games and game state
-- Player statistics and rankings
-- Word dictionary (seeded with common English words)
-- Chat messages
+## 🚀 Szybki Start
 
-## Architecture
+### Wymagania
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
-```
-├── backend/           # FastAPI application
-│   ├── app/
-│   │   ├── models.py      # SQLAlchemy models
-│   │   ├── schemas.py     # Pydantic schemas
-│   │   ├── auth.py        # JWT authentication
-│   │   ├── routes/        # API endpoints
-│   │   └── services/      # Game logic
-│   ├── database.py        # Database configuration
-│   ├── main.py           # FastAPI app
-│   ├── seed_database.py  # Database seeding
-│   └── tests/            # Backend tests
-├── frontend/          # React application
-│   ├── src/
-│   │   ├── components/    # React components
-│   │   ├── pages/         # Page components
-│   │   ├── services/      # API and WebSocket services
-│   │   └── styles/        # CSS files
-│   └── public/           # Static files
-└── docker-compose.yml    # Docker orchestration
-```
+### Instalacja i uruchomienie
 
-## Prerequisites
-
-- Docker
-- Docker Compose
-
-## Quick Start
-
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd PAINT_Dulikowska_Kowalski_Wroblewski_Scrabble
-   ```
-
-2. **Start the application**:
-   Use the provided start script to build and run the application. This script handles container cleanup, network creation, and correct startup order better than standard docker-compose for this project setup.
-   ```bash
-   bash start_app.sh
-   ```
-
-   *Note: You may be prompted for your password as the script uses `sudo` to manage Docker containers.*
-
-   The script will:
-   - Clean up any existing Scrabble containers
-   - Create a dedicated Docker network
-   - Start the PostgreSQL database
-   - Build and start the Backend (FastAPI)
-   - Build and start the Frontend (React/Vite)
-
-3. **Access the application**:
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8000
-   - API Documentation: http://localhost:8000/docs
-
-4. **Test with pre-created users**:
-   - Username: `player1`, `player2`, `player3`, or `player4`
-   - Password: `password123`
-
-## Development
-
-### Running Tests
-
-Backend tests:
 ```bash
-cd backend
-docker-compose exec backend pytest
+# Sklonuj repozytorium
+git clone https://github.com/ziomson-pl/PAINT_Dulikowska_Kowalski_Wroblewski_Scrabble.git
+cd PAINT_Dulikowska_Kowalski_Wroblewski_Scrabble
+
+# Uruchom aplikację
+docker compose up --build
 ```
 
+Po uruchomieniu aplikacja będzie dostępna pod adresami:
+- **Frontend:** http://localhost:3000
+- **Backend API:** http://localhost:8000
+- **API Docs:** http://localhost:8000/docs
 
-### Database Access
+### Konta testowe
+| Login | Hasło |
+|-------|-------|
+| player1 | password123 |
+| player2 | password123 |
+| player3 | password123 |
+| player4 | password123 |
 
-The application uses **PostgreSQL**. You can connect to it using the following credentials:
-- **Host**: `localhost`
-- **Port**: `5432`
-- **Database**: `scrabble`
-- **Username**: `scrabble_user`
-- **Password**: `scrabble_pass`
+## 📸 Zrzuty ekranu
 
-### API Endpoints
+<table>
+  <tr>
+    <td><img src="img/login.png" alt="Logowanie" width="300"/></td>
+    <td><img src="img/lobby.png" alt="Lobby" width="300"/></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Ekran logowania</em></td>
+    <td align="center"><em>Lobby z listą gier</em></td>
+  </tr>
+  <tr>
+    <td><img src="img/game_board.png" alt="Plansza gry" width="300"/></td>
+    <td><img src="img/rankings.png" alt="Rankingi" width="300"/></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Plansza gry</em></td>
+    <td align="center"><em>Tabela rankingowa</em></td>
+  </tr>
+</table>
+<!-- Dodaj screenshoty do folderu /img -->
 
-#### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login and get JWT token
+## 🛠️ Architektura
 
-#### Games
-- `GET /api/games` - List all games
-- `POST /api/games` - Create new game
-- `GET /api/games/{id}` - Get game details
-- `POST /api/games/{id}/join` - Join a game
-- `POST /api/games/{id}/start` - Start the game
-- `POST /api/games/{id}/moves` - Make a move
-- `GET /api/games/{id}/moves` - Get move history
-- `GET /api/games/{id}/messages` - Get chat messages
+| Warstwa | Technologia |
+|---------|-------------|
+| Frontend | React 19, Vite, @dnd-kit |
+| Backend | FastAPI, SQLAlchemy |
+| Baza danych | PostgreSQL 15 |
+| Konteneryzacja | Docker, Docker Compose |
 
-#### Profile & Rankings
-- `GET /api/profile` - Get current user profile
-- `GET /api/rankings` - Get global rankings
-- `GET /api/history` - Get user's game history
+## 📚 Dokumentacja
 
-#### WebSocket
-- `WS /ws/chat/{game_id}` - Real-time chat for a game
+Szczegółowa dokumentacja techniczna:
 
-## Game Rules
+- 📘 [**Backend**](docs/BACKEND.md) — API, modele, serwisy, autentykacja
+- 📗 [**Frontend**](docs/FRONTEND.md) — komponenty React, routing, UI
+- 📙 [**Baza danych**](docs/DATABASE.md) — schemat tabel, relacje, ERD
 
-- **Players**: 2-4 players per game
-- **Tiles**: Standard Scrabble distribution (100 tiles including 2 blanks)
-- **Board**: 15x15 grid with premium squares
-- **Scoring**: Based on letter values and multipliers
-- **Dictionary**: Pre-seeded with common English words
-- **Turns**: Players take turns placing tiles to form words
-- **Actions**: Play word, pass turn, or exchange tiles
-- **End Game**: When tile bag is empty and a player uses all their tiles
+## 👥 Autorzy
 
-## Technology Stack
-
-- **Frontend**: React 18, React Router, Axios, WebSocket
-- **Backend**: Python 3.11, FastAPI, SQLAlchemy, WebSockets
-- **Database**: PostgreSQL 15
-- **Authentication**: JWT tokens with bcrypt
-- **Containerization**: Docker, Docker Compose
-
-## Project Structure Details
-
-### Backend Models
-- `User`: User accounts and authentication
-- `Game`: Game state and board
-- `GamePlayer`: Player-game association with scores and racks
-- `GameMove`: Move history
-- `Dictionary`: Valid Scrabble words
-- `Ranking`: Player statistics and ratings
-- `ChatMessage`: Chat messages per game
-
-### Frontend Components
-- `Login/Register`: Authentication forms
-- `Lobby`: Game browser and creation
-- `Game`: Main game interface
-- `GameBoard`: Interactive board display
-- `PlayerRack`: Tile management
-- `Chat`: Real-time messaging
-- `Profile`: User statistics
-- `Rankings`: Leaderboard
-
-## License
-
-This project was created for educational purposes as part of the PAINT course at Warsaw University of Technology.
-
-## Authors
+Projekt PAINT — Politechnika Warszawska
 
 - Dulikowska
-- Kowalski
+- Kowalski  
 - Wróblewski
+
+## 📄 Licencja
+
+Projekt edukacyjny.
