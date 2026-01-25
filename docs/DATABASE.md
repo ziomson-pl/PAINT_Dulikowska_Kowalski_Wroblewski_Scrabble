@@ -90,7 +90,7 @@ erDiagram
     
     rankings {
         int id PK
-        int user_id FK UK
+        int user_id FK
         int total_games
         int wins
         int losses
