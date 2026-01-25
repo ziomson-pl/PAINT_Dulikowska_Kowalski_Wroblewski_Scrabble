@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Text, JSON
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -20,6 +21,8 @@ class Game(Base):
     __tablename__ = "games"
 
     id = Column(Integer, primary_key=True, index=True)
+    game_name = Column(String(100), nullable=True)
+    dictionary = Column(String(10), default="PL", nullable=False)  # PL or EN
     status = Column(String(20), default="waiting")  # waiting, active, finished
     current_turn = Column(Integer, default=0)
     board_state = Column(JSON, nullable=True)  # 15x15 board
@@ -68,8 +71,13 @@ class Dictionary(Base):
     __tablename__ = "dictionary"
 
     id = Column(Integer, primary_key=True, index=True)
-    word = Column(String(15), unique=True, index=True, nullable=False)
-    language = Column(String(10), default="EN")
+    word = Column(String(50), nullable=False)
+    language = Column(String(10), default="PL", nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('word', 'language', name='uq_word_language'),
+    )
+
 
 class Ranking(Base):
     __tablename__ = "rankings"

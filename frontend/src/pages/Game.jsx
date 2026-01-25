@@ -15,6 +15,8 @@ function Game() {
   const [selectedTiles, setSelectedTiles] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [exchangeMode, setExchangeMode] = useState(false);
+  const [selectedExchangeTiles, setSelectedExchangeTiles] = useState([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -74,9 +76,53 @@ function Game() {
     try {
       await gameAPI.makeMove(gameId, { tiles: [], is_pass: true });
       setSelectedTiles([]);
-      loadGame();
+      setError('');
+      // Refresh game state to get updated turn
+      await loadGame();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Ruch nieprawidłowy');
+      const errorMsg = err.response?.data?.detail || 'Ruch nieprawidłowy';
+      setError(errorMsg);
+      // Refresh game state even on error to get latest turn info
+      loadGame();
+    }
+  };
+
+  const handleExchange = async () => {
+    if (selectedExchangeTiles.length === 0) {
+      setError('Nie wybrano liter do wymiany');
+      return;
+    }
+
+    try {
+      const tilesToExchange = selectedExchangeTiles.map(index => game.rack[index]);
+      await gameAPI.makeMove(gameId, {
+        tiles: [],
+        is_exchange: true,
+        exchange_tiles: tilesToExchange
+      });
+      setSelectedExchangeTiles([]);
+      setExchangeMode(false);
+      setError('');
+      await loadGame();
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || 'Wymiana liter nie udała się';
+      setError(errorMsg);
+      loadGame();
+    }
+  };
+
+  const toggleExchangeMode = () => {
+    if (exchangeMode) {
+      setSelectedExchangeTiles([]);
+    }
+    setExchangeMode(!exchangeMode);
+  };
+
+  const toggleExchangeTile = (index) => {
+    if (selectedExchangeTiles.includes(index)) {
+      setSelectedExchangeTiles(selectedExchangeTiles.filter(i => i !== index));
+    } else {
+      setSelectedExchangeTiles([...selectedExchangeTiles, index]);
     }
   };
 
@@ -87,17 +133,26 @@ function Game() {
     }
 
     // Remap selectedTiles to expected format (remove rackIndex if backend doesn't need it)
+    // IMPORTANT: Ensure row and col are integers, not strings
     const tilesToSend = selectedTiles.map(({ letter, row, col, is_blank }) => ({
-      letter, row, col, is_blank
+      letter, 
+      row: parseInt(row), 
+      col: parseInt(col), 
+      is_blank: Boolean(is_blank)
     }));
 
     try {
       await gameAPI.makeMove(gameId, { tiles: tilesToSend, is_pass: false });
+      // Only clear selected tiles and error after successful move
       setSelectedTiles([]);
       setError('');
-      loadGame();
+      // Refresh game state to show updated board
+      await loadGame();
     } catch (err) {
+      // On error, keep selected tiles so user can fix and retry
       setError(err.response?.data?.detail || 'Ruch nieprawidłowy');
+      // Still refresh game state in case turn changed
+      loadGame();
     }
   };
 
@@ -106,41 +161,53 @@ function Game() {
 
     if (over && over.data.current) {
       const { row, col } = over.data.current;
-      const { tile, index: rackIndex } = active.data.current;
+      const { tile, index: rackIndex, fromBoard, row: boardRow, col: boardCol, isPlacedThisTurn } = active.data.current;
 
-      // Check if cell is occupied by board tile
+      // Check if cell is occupied by board tile (permanent)
       if (game.board_state[row][col]) {
         return;
       }
 
-      // Check if cell is occupied by another selected tile
-      const existingIndex = selectedTiles.findIndex(t => t.row === row && t.col === col);
-
-      const newTile = {
-        letter: tile,
-        row,
-        col,
-        is_blank: tile === '_',
-        rackIndex // Track which tile from rack is used
-      };
-
+      let newTile;
       let newSelectedTiles = [...selectedTiles];
 
-      // Remove any previous placement of THIS same tile (if moved from one board cell to another, 
-      // but currently we only support Rack -> Board. If we support dragging from board, 'active' would need source info).
-      // Since active.data.current.fromRack is true, we check if this rackIndex is already placed somewhere
-      const previousPlacementIndex = newSelectedTiles.findIndex(t => t.rackIndex === rackIndex);
-      if (previousPlacementIndex >= 0) {
-        newSelectedTiles.splice(previousPlacementIndex, 1);
+      if (fromBoard && isPlacedThisTurn) {
+
+        const oldPlacementIndex = newSelectedTiles.findIndex(t => t.row === boardRow && t.col === boardCol);
+        if (oldPlacementIndex >= 0) {
+          newSelectedTiles.splice(oldPlacementIndex, 1);
+        }
+
+        const oldTile = newSelectedTiles.find(t => t.row === boardRow && t.col === boardCol) || 
+                       selectedTiles.find(t => t.row === boardRow && t.col === boardCol);
+        
+        newTile = {
+          letter: tile,
+          row,
+          col,
+          is_blank: tile === '_',
+          rackIndex: oldTile?.rackIndex 
+        };
+      } else {
+        // Dragging from rack
+        newTile = {
+          letter: tile,
+          row,
+          col,
+          is_blank: tile === '_',
+          rackIndex // Track which tile from rack is used
+        };
+
+        // Remove any previous placement of THIS same tile from rack
+        const previousPlacementIndex = newSelectedTiles.findIndex(t => t.rackIndex === rackIndex);
+        if (previousPlacementIndex >= 0) {
+          newSelectedTiles.splice(previousPlacementIndex, 1);
+        }
       }
 
-      // If dropped on occupied cell (by selection), replace it? Or reject?
-      // Let's replace validation:
+      // If dropped on occupied cell (by selection), replace it
       const occupiedBySelection = newSelectedTiles.findIndex(t => t.row === row && t.col === col);
       if (occupiedBySelection >= 0) {
-        // If we want to replace, we remove the old one. But that tile should go back to rack.
-        // For simplicity, let's just replace it in the array. The old tile "returns" to rack visually 
-        // because it's no longer in selectedTiles.
         newSelectedTiles.splice(occupiedBySelection, 1);
       }
 
@@ -230,7 +297,10 @@ function Game() {
     <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
       <div className="game-container">
         <header className="game-header">
-          <h1>Scrabble Gra #{gameId}</h1>
+          <h1>Scrabble {game.game_name ? game.game_name : `Gra #${gameId}`}</h1>
+          <div className="game-meta">
+            <span className="dict-badge">Dictionary: {game.dictionary || 'PL'}</span>
+          </div>
           <button onClick={() => navigate('/lobby')} className="btn-secondary">
             Powrót do Lobby
           </button>
@@ -267,29 +337,59 @@ function Game() {
                 <PlayerRack
                   rack={getDisplayRack()}
                   disabled={!isMyTurn()}
+                  isExchangeMode={exchangeMode}
+                  selectedExchangeTiles={selectedExchangeTiles}
+                  onToggleExchangeTile={toggleExchangeTile}
                 />
 
                 <div className="game-controls">
-                  <button
-                    onClick={handlePlayWord}
-                    disabled={!isMyTurn() || selectedTiles.length === 0}
-                    className="btn-primary"
-                  >
-                    Zagraj Słowo
-                  </button>
-                  <button
-                    onClick={handlePass}
-                    disabled={!isMyTurn()}
-                    className="btn-secondary"
-                  >
-                    Pasuj
-                  </button>
-                  <button
-                    onClick={() => setSelectedTiles([])}
-                    className="btn-secondary"
-                  >
-                    Wyczyść
-                  </button>
+                  {!exchangeMode ? (
+                    <>
+                      <button
+                        onClick={handlePlayWord}
+                        disabled={!isMyTurn() || selectedTiles.length === 0}
+                        className="btn-primary"
+                      >
+                        Zagraj Słowo
+                      </button>
+                      <button
+                        onClick={handlePass}
+                        disabled={!isMyTurn()}
+                        className="btn-secondary"
+                      >
+                        Pasuj
+                      </button>
+                      <button
+                        onClick={toggleExchangeMode}
+                        disabled={!isMyTurn()}
+                        className="btn-secondary"
+                      >
+                        Wymień Litery
+                      </button>
+                      <button
+                        onClick={() => setSelectedTiles([])}
+                        className="btn-secondary"
+                      >
+                        Wyczyść
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleExchange}
+                        disabled={selectedExchangeTiles.length === 0}
+                        className="btn-primary"
+                      >
+                        Potwierdź Wymianę ({selectedExchangeTiles.length})
+                      </button>
+                      <button
+                        onClick={toggleExchangeMode}
+                        className="btn-secondary"
+                      >
+                        Anuluj
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={handleEndGame}
                     className="btn-danger"

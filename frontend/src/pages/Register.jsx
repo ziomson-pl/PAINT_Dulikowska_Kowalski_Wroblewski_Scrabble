@@ -15,14 +15,29 @@ function Register() {
     setError('');
 
     try {
-      await authAPI.register(username, email, password);
+      const registerResponse = await authAPI.register(username, email, password);
       // Auto-login after registration
-      const loginResponse = await authAPI.login(username, password);
-      localStorage.setItem('token', loginResponse.data.access_token);
-      localStorage.setItem('username', username);
-      navigate('/lobby');
+      try {
+        const loginResponse = await authAPI.login(username, password);
+        localStorage.setItem('token', loginResponse.data.access_token);
+        localStorage.setItem('username', username);
+        navigate('/lobby');
+      } catch (loginErr) {
+        // Registration succeeded but login failed - redirect to login page
+        setError('Registration successful! Please login.');
+        setTimeout(() => navigate('/login'), 2000);
+      }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Registration failed');
+      const errorDetail = err.response?.data?.detail;
+      if (errorDetail) {
+        setError(errorDetail);
+      } else if (err.response?.status === 400) {
+        setError('Invalid registration data. Please check your input.');
+      } else if (err.response?.status === 500) {
+        setError('Server error. Please try again later.');
+      } else {
+        setError('Registration failed. Please try again.');
+      }
     }
   };
 
