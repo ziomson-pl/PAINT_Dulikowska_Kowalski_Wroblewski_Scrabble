@@ -86,9 +86,25 @@ Szczegółowa dokumentacja techniczna:
 
 Projekt PAINT — Politechnika Warszawska
 
-- Małgorzata Dulikowska
-- Tomasz Kowalski  
-- Jakub Wróblewski
+Podział ról:
+- Tomasz Kowalski (Kierownik projektu):
+  - Backend
+    - Logika gry w scrabble
+  - Frontend
+    - Konfiguracja gry
+- Małgorzata Dulikowska: 
+  - Backend
+    - System rankingu
+    - Obsługa słowników
+  - Frontend
+    - Interfejs gry w Scrabble
+    - Interfejs rankingu
+- Jakub Wróblewski: 
+  - Baza Danych
+    - Obsługa danych użytkowników
+    - Dane gry i ranking
+  - Backend
+    - Tworzenie i zarządzanie sesją gry
 
 ## 📄 Licencja
 
