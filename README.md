@@ -86,9 +86,9 @@ Szczegółowa dokumentacja techniczna:
 
 Projekt PAINT — Politechnika Warszawska
 
-- Dulikowska
-- Kowalski  
-- Wróblewski
+- Małgorzata Dulikowska
+- Tomasz Kowalski  
+- Jakub Wróblewski
 
 ## 📄 Licencja
 
