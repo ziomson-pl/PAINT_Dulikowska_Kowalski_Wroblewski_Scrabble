@@ -309,16 +309,17 @@ class GameService:
                 for row, col in placed_positions:
                     board[row][col] = None
                 return None, "First move must go through the center square (7,7)"
+        else:
+            has_connection = self._tiles_connect_to_existing(board, placed_positions)
+            if not has_connection:
+                for row, col in placed_positions:
+                    board[row][col] = None
+                return None, "Tiles must connect to existing words on the board"
         
         words = self._find_words(board, placed_positions)
         if not words:
             for row, col in placed_positions:
                 board[row][col] = None
-            if is_first_move:
-                return None, "No valid words formed. First move must form at least one valid word."
-            has_connection = self._tiles_connect_to_existing(board, placed_positions)
-            if not has_connection:
-                return None, "Tiles must connect to existing words on the board"
             return None, "No valid words formed. Tiles must form at least one valid word."
         
         for word in words:

@@ -30,11 +30,9 @@ function Game() {
     loadGame();
     loadProfile();
   
-    if (game?.status !== 'active') return;
-  
     const interval = setInterval(loadGame, 2000);
     return () => clearInterval(interval);
-  }, [gameId, game?.status]);
+  }, [gameId]);
   
 
   const loadGame = async () => {
@@ -336,7 +334,7 @@ function Game() {
               )}
             </div>
 
-            {/* {error && <div className="error-message">{error}</div>} */}
+            {error && <div className="error-message">{error}</div>}
 
             {game.status === 'waiting' && (
               <div className="waiting-section">
