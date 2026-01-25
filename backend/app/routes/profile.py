@@ -4,9 +4,12 @@ from sqlalchemy import func
 from typing import List
 
 from app.models import User, Ranking, Game, GamePlayer
-from app.schemas import RankingResponse, GameHistoryResponse, UserResponse
+from app.schemas import RankingResponse, GameHistoryResponse, UserResponse, TotalScoreUpdateCreate
 from app.auth import get_current_user
 from database import get_db
+from app.services.ranking_service import RankingService
+from pydantic import ValidationError
+
 
 router = APIRouter(prefix="/api", tags=["profile"])
 
@@ -34,6 +37,7 @@ def get_rankings(db: Session = Depends(get_db), current_user: User = Depends(get
         ))
     
     return result
+
 
 @router.get("/history", response_model=List[GameHistoryResponse])
 def get_history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

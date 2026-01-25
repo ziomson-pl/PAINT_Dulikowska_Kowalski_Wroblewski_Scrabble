@@ -48,12 +48,41 @@ function Login() {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>Scrabble Game</h1>
-        <h2>Login</h2>
-        {error && <div className="error-message">{error}</div>}
+        <h1>Scrabble</h1>
+        <h2>Logowanie</h2>
+        {/* {error && (
+          <div className="error-message">
+            <div>{error}</div>
+            <button 
+              type="button"
+              onClick={() => setShowDebug(!showDebug)}
+              style={{ 
+                marginTop: '10px', 
+                fontSize: '12px', 
+                padding: '5px 10px',
+                cursor: 'pointer'
+              }}
+            >
+              {showDebug ? 'Hide' : 'Show'} Debug Info
+            </button>
+            {showDebug && debugInfo && (
+              <pre style={{ 
+                marginTop: '10px', 
+                padding: '10px', 
+                backgroundColor: '#f5f5f5', 
+                borderRadius: '4px',
+                fontSize: '11px',
+                overflow: 'auto',
+                maxHeight: '300px'
+              }}>
+                {debugInfo}
+              </pre>
+            )}
+          </div>
+        )} */}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Username:</label>
+            <label>Nazwa użytkownika:</label>
             <input
               type="text"
               value={username}
@@ -62,7 +91,7 @@ function Login() {
             />
           </div>
           <div className="form-group">
-            <label>Password:</label>
+            <label>Hasło:</label>
             <input
               type="password"
               value={password}
@@ -70,10 +99,10 @@ function Login() {
               required
             />
           </div>
-          <button type="submit" className="btn-primary">Login</button>
+          <button type="submit" className="btn-primary">Zaloguj</button>
         </form>
         <p>
-          Don't have an account? <a href="/register">Register</a>
+          Nie masz konta? <a href="/register">Zarejestruj się</a>
         </p>
       </div>
     </div>

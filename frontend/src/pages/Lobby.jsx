@@ -71,12 +71,12 @@ function Lobby() {
   return (
     <div className="lobby-container">
       <header className="lobby-header">
-        <h1>Scrabble Lobby</h1>
+        <h1>Lobby</h1>
         <div className="user-info">
-          <span>Welcome, {username}!</span>
-          <button onClick={() => navigate('/profile')} className="btn-secondary">Profile</button>
-          <button onClick={() => navigate('/rankings')} className="btn-secondary">Rankings</button>
-          <button onClick={handleLogout} className="btn-secondary">Logout</button>
+          <span>Witaj, {username}!</span>
+          <button onClick={() => navigate('/profile')} className="btn-secondary">Profil</button>
+          <button onClick={() => navigate('/rankings')} className="btn-secondary">Rankingi</button>
+          <button onClick={handleLogout} className="btn-secondary">Wyloguj</button>
         </div>
       </header>
 
@@ -86,13 +86,13 @@ function Lobby() {
         <div className="create-game-section">
           {!showCreateForm ? (
             <button onClick={() => setShowCreateForm(true)} className="btn-primary btn-large">
-              Create New Game
+              Stwórz nową grę
             </button>
           ) : (
             <form onSubmit={handleCreateGame} className="create-game-form">
-              <h3>Create a New Game</h3>
+              <h3>Stwórz nową grę</h3>
               <div className="form-group">
-                <label htmlFor="gameName">Game Name (optional):</label>
+                <label htmlFor="gameName">Nazwa gry (opcjonalne):</label>
                 <input
                   type="text"
                   id="gameName"
@@ -103,14 +103,14 @@ function Lobby() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="dictionary">Dictionary:</label>
+                <label htmlFor="dictionary">Słownik:</label>
                 <select
                   id="dictionary"
                   value={dictionary}
                   onChange={(e) => setDictionary(e.target.value)}
                 >
-                  <option value="PL">Polish</option>
-                  <option value="EN">English</option>
+                  <option value="PL">Polski</option>
+                  <option value="EN">Angielski</option>
                 </select>
               </div>
               <div className="form-actions">
@@ -123,7 +123,7 @@ function Lobby() {
                   className="btn-secondary"
                   disabled={loading}
                 >
-                  Cancel
+                  Analuj
                 </button>
               </div>
             </form>
@@ -131,17 +131,17 @@ function Lobby() {
         </div>
 
         <div className="games-list">
-          <h2>Available Games</h2>
+          <h2>Dostępne gry</h2>
           {games.length === 0 ? (
-            <p className="no-games">No games available. Create one!</p>
+            <p className="no-games">Brak dostępnych gier. Stwórz nową!</p>
           ) : (
             <div className="games-grid">
               {games.map((game) => (
                 <div key={game.id} className="game-card">
                   <h3>{game.game_name ? game.game_name : `Game #${game.id}`}</h3>
-                  <p>Dictionary: <span className="dict-tag">{game.dictionary}</span></p>
+                  <p>DSłownik: <span className="dict-tag">{game.dictionary}</span></p>
                   <p>Status: <span className={`status-${game.status}`}>{game.status}</span></p>
-                  <p>Players: {game.players.length}/4</p>
+                  <p>Gracze: {game.players.length}/4</p>
                   <div className="players-list">
                     {game.players.map((player, idx) => (
                       <div key={idx} className="player-tag">
@@ -154,7 +154,7 @@ function Lobby() {
                       onClick={() => handleJoinGame(game.id)} 
                       className="btn-primary"
                     >
-                      Join Game
+                      Dołącz
                     </button>
                   )}
                   {game.status === 'active' && (
@@ -162,7 +162,7 @@ function Lobby() {
                       onClick={() => navigate(`/game/${game.id}`)} 
                       className="btn-secondary"
                     >
-                      View Game
+                      Zobacz
                     </button>
                   )}
                 </div>
