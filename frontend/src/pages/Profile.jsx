@@ -35,15 +35,15 @@ function Profile() {
   };
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <div className="loading">Ładowanie...</div>;
   }
 
   return (
     <div className="profile-container">
       <header className="profile-header">
-        <h1>Profile</h1>
+        <h1>Profil</h1>
         <button onClick={() => navigate('/lobby')} className="btn-secondary">
-          Back to Lobby
+          Powrót do Lobby
         </button>
       </header>
 
@@ -51,33 +51,33 @@ function Profile() {
         <div className="profile-info">
           <h2>{profile.username}</h2>
           <p>Email: {profile.email}</p>
-          <p>Member since: {new Date(profile.created_at).toLocaleDateString()}</p>
+          <p>Członkiem od: {new Date(profile.created_at).toLocaleDateString()}</p>
         </div>
       )}
 
       <div className="game-history">
-        <h2>Game History</h2>
+        <h2>Historia gry</h2>
         {history.length === 0 ? (
           <p>No games played yet.</p>
         ) : (
           <table className="history-table">
             <thead>
               <tr>
-                <th>Game #</th>
+                <th># gry</th>
                 <th>Status</th>
-                <th>Your Score</th>
-                <th>Rank</th>
-                <th>Players</th>
-                <th>Date</th>
+                <th>Twój wynik</th>
+                <th>Miejsce</th>
+                <th>Liczba graczy</th>
+                <th>Data</th>
               </tr>
             </thead>
             <tbody>
               {history.map((game) => (
                 <tr key={game.id}>
                   <td>{game.id}</td>
-                  <td>{game.status}</td>
+                  <td>{game.status === "finished" ? "zakończona" : "aktywna"}</td>
                   <td>{game.player_score}</td>
-                  <td>{game.player_rank}/{game.total_players}</td>
+                  <td>{game.player_rank}</td>
                   <td>{game.total_players}</td>
                   <td>{new Date(game.created_at).toLocaleDateString()}</td>
                 </tr>

@@ -5,20 +5,17 @@ import logging
 
 from app.routes import auth, games, profile, chat
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Create database tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Scrabble Game API", version="1.0.0")
 logger.info("FastAPI application started")
 
-# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://frontend:3000"],
@@ -27,7 +24,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
 app.include_router(auth.router)
 app.include_router(games.router)
 app.include_router(profile.router)

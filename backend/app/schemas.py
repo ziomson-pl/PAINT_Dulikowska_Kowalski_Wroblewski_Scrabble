@@ -2,7 +2,6 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-# User schemas
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
@@ -28,10 +27,9 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
-# Game schemas
 class GameCreate(BaseModel):
     game_name: Optional[str] = Field(None, max_length=100)
-    dictionary: str = Field("PL", pattern="^(PL|EN)$")  # PL for Polish, EN for English
+    dictionary: str = Field("PL", pattern="^(PL|EN)$")
 
 class TilePlacement(BaseModel):
     letter: str
@@ -80,7 +78,6 @@ class GameDetailResponse(GameResponse):
     rack: Optional[List[str]] = None
     remaining_tiles: int = 0
 
-# Chat schemas
 class ChatMessageCreate(BaseModel):
     message: str = Field(..., max_length=500)
 
@@ -94,7 +91,6 @@ class ChatMessageResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Ranking schemas
 class RankingResponse(BaseModel):
     id: int
     username: str
@@ -107,6 +103,9 @@ class RankingResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class TotalScoreUpdateCreate(BaseModel):
+    score: int = Field(..., ge=0)
 
 # History schemas
 class GameHistoryResponse(BaseModel):

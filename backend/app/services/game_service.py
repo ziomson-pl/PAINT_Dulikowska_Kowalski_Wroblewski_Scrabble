@@ -1,10 +1,12 @@
 import random
+import re
 from typing import List, Dict, Optional, Tuple
 from collections import Counter
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 from app.models import Game, GamePlayer, Dictionary, GameMove
+from app.services.ranking_service import RankingService
 
 # Polish Scrabble tile distribution (100 tiles)
 POLISH_TILE_DISTRIBUTION = {
@@ -96,7 +98,6 @@ class GameService:
         if not game or game.status != "waiting":
             return None
         
-        # Check if player already joined
         existing = self.db.query(GamePlayer).filter(
             GamePlayer.game_id == game_id,
             GamePlayer.user_id == user_id
@@ -104,12 +105,10 @@ class GameService:
         if existing:
             return existing
         
-        # Check player count (max 4)
         player_count = self.db.query(GamePlayer).filter(GamePlayer.game_id == game_id).count()
         if player_count >= 4:
             return None
         
-        # Draw initial rack (7 tiles)
         rack = self._draw_tiles(game, 7)
         
         game_player = GamePlayer(
@@ -137,58 +136,77 @@ class GameService:
         self.db.commit()
         return True
 
+    from datetime import datetime, timezone
+
     def end_game(self, game_id: int, user_id: int) -> bool:
-        """End the game (any player in the game can end it)"""
         game = self.db.query(Game).filter(Game.id == game_id).first()
         if not game:
             return False
-        
-        # Check if user is in the game
+
         player = self.db.query(GamePlayer).filter(
             GamePlayer.game_id == game_id,
             GamePlayer.user_id == user_id
         ).first()
         if not player:
             return False
-        
-        # Only allow ending active or waiting games
+
+        if game.status == "finished":
+            return False
+
         if game.status not in ["waiting", "active"]:
             return False
-        
-        # Set game status to finished
-        game.status = "finished"
-        game.finished_at = datetime.utcnow()
-        self.db.commit()
-        return True
+
+        players = (
+            self.db.query(GamePlayer)
+            .filter(GamePlayer.game_id == game_id)
+            .all()
+        )
+        if not players:
+            return False
+
+        try:
+            game.status = "finished"
+            game.finished_at = datetime.utcnow()
+
+            max_score = max(p.score for p in players)
+            ranking_service = RankingService(self.db)
+
+            for gp in players:
+                ranking_service.update_after_game(
+                    user_id=gp.user_id,
+                    score=gp.score,
+                    is_winner=(gp.score == max_score)
+                )
+
+            self.db.commit()
+            return True
+
+        except Exception as e:
+            self.db.rollback()
+            print("END GAME ERROR:", e)
+            raise
+
 
     def _draw_tiles(self, game: Game, count: int) -> List[str]:
         """Draw tiles from the bag"""
         bag = list(game.bag_tiles) if game.bag_tiles else []
         tiles = []
         
-        # Shuffle bag before drawing to ensure randomness if previous shuffle wasn't effective
         if not bag:
            return []
 
-        # Draw tiles
         for _ in range(min(count, len(bag))):
-            # Since bag is shuffled at init, popping from end is fine. 
-            # But let's pop randomly just to be super safe against any order issues.
             idx = random.randint(0, len(bag) - 1)
             tiles.append(bag.pop(idx))
             
-        # VERY IMPORTANT: Re-assign to trigger SQLAlchemy JSON detection
         game.bag_tiles = list(bag)
         
-        # Commit happens in the caller usually, but to be safe for intermediate draws we can rely on session
-        # The key fix here is `list(bag)` creating a new object reference.
         self.db.add(game) 
         
         return tiles
 
     def make_move(self, game_id: int, user_id: int, tiles_played: List[Dict], is_pass: bool = False, is_exchange: bool = False, exchange_tiles: List[str] = None) -> Tuple[Optional[GameMove], Optional[str]]:
         """Process a player's move"""
-        # Refresh game from database to ensure we have latest state
         game = self.db.query(Game).filter(Game.id == game_id).first()
         if not game:
             return None, "Game not found"
@@ -202,12 +220,9 @@ class GameService:
         if not player:
             return None, "Player not in game"
         
-        # Refresh player to ensure we have latest data
         self.db.refresh(player)
         
-        # Check if it's player's turn - refresh game to get latest current_turn
         self.db.refresh(game)
-        # Get all active players sorted by player_order
         active_players = self.db.query(GamePlayer).filter(
             GamePlayer.game_id == game_id,
             GamePlayer.is_active == True
@@ -216,15 +231,12 @@ class GameService:
         if not active_players:
             return None, "No active players in game"
         
-        # The active_players list is in order 0, 1, 2, ... (player_order)
-        # So current_turn % len(active_players) gives us the index in this list
         current_player_index = game.current_turn % len(active_players)
         current_player_id = active_players[current_player_index].id
         
         if player.id != current_player_id:
             return None, "Not your turn"
         
-        # Handle pass
         if is_pass:
             move = GameMove(
                 game_id=game_id,
@@ -238,7 +250,6 @@ class GameService:
             self.db.commit()
             return move, None
         
-        # Handle exchange
         if is_exchange and exchange_tiles:
             rack = player.rack or []
             for tile in exchange_tiles:
@@ -246,7 +257,6 @@ class GameService:
                     rack.remove(tile)
                     game.bag_tiles.append(tile)
             
-            # Draw new tiles
             new_tiles = self._draw_tiles(game, len(exchange_tiles))
             rack.extend(new_tiles)
             player.rack = rack
@@ -265,15 +275,11 @@ class GameService:
             self.db.commit()
             return move, None
         
-        # Validate and place tiles
-        # Work on a copy of the board to avoid modifying game state on validation errors
         board = [row[:] for row in game.board_state] if game.board_state else [[None for _ in range(15)] for _ in range(15)]
         rack = player.rack or []
         
-        # Check if this is the first move (board is empty)
         is_first_move = all(all(cell is None for cell in row) for row in board)
         
-        # Validate tiles are in rack
         tiles_to_place = [t['letter'] for t in tiles_played]
         rack_counter = Counter(rack)
         tiles_counter = Counter(tiles_to_place)
@@ -282,12 +288,10 @@ class GameService:
             if rack_counter[tile] < count:
                 return None, f"Not enough {tile} tiles in rack"
         
-        # Remove tiles from rack
         temp_rack = rack.copy()
         for tile in tiles_to_place:
             temp_rack.remove(tile)
         
-        # Place tiles on board
         placed_positions = []
         for tile in tiles_played:
             row, col = tile['row'], tile['col']
@@ -299,53 +303,41 @@ class GameService:
             }
             placed_positions.append((row, col))
         
-        # Validate first move must go through center (7,7)
         if is_first_move:
             goes_through_center = any(row == 7 and col == 7 for row, col in placed_positions)
             if not goes_through_center:
-                # Revert board
                 for row, col in placed_positions:
                     board[row][col] = None
                 return None, "First move must go through the center square (7,7)"
         
-        # Validate word formation
         words = self._find_words(board, placed_positions)
         if not words:
-            # Revert board
             for row, col in placed_positions:
                 board[row][col] = None
-            # Provide more specific error message
             if is_first_move:
                 return None, "No valid words formed. First move must form at least one valid word."
-            # Check if tiles are connected to existing words (for non-first moves)
             has_connection = self._tiles_connect_to_existing(board, placed_positions)
             if not has_connection:
                 return None, "Tiles must connect to existing words on the board"
             return None, "No valid words formed. Tiles must form at least one valid word."
         
-        # Validate all words in dictionary
         for word in words:
             if not self._is_valid_word(word, game.dictionary):
-                # Revert board
                 for row, col in placed_positions:
                     board[row][col] = None
                 return None, f"Invalid word: {word}"
         
-        # Calculate score
         score = self._calculate_score(board, placed_positions, tiles_played, game.dictionary)
         
-        # Update game state - create new list to ensure SQLAlchemy detects the change
-        game.board_state = [row[:] for row in board]  # Deep copy to ensure change detection
-        flag_modified(game, "board_state")  # Explicitly mark as modified for JSON column
+        game.board_state = [row[:] for row in board]
+        flag_modified(game, "board_state")
         player.score += score
         player.rack = temp_rack
         flag_modified(player, "rack")
         
-        # Draw new tiles
         new_tiles = self._draw_tiles(game, len(tiles_played))
         player.rack.extend(new_tiles)
         
-        # Create move record
         main_word = max(words, key=len) if words else ""
         move = GameMove(
             game_id=game_id,
@@ -358,7 +350,6 @@ class GameService:
         self.db.add(move)
         game.current_turn += 1
         
-        # Check if game should end
         if not player.rack and not game.bag_tiles:
             game.status = "finished"
         
@@ -369,32 +360,27 @@ class GameService:
         """Find all words formed by the placed tiles"""
         words = []
         
-        # Check if tiles are in a line and contiguous
         if not placed_positions:
             return words
         
         rows = sorted([pos[0] for pos in placed_positions])
         cols = sorted([pos[1] for pos in placed_positions])
         
-        # Check if all in same row or same column
         same_row = len(set(rows)) == 1
         same_col = len(set(cols)) == 1
         
         if not same_row and not same_col:
-            return words  # Invalid placement
+            return words
         
-        # Verify contiguity (including existing tiles)
         if same_row:
             row = rows[0]
             min_col = min(cols)
             max_col = max(cols)
             
-            # Check if all positions between min and max have tiles
             for col in range(min_col, max_col + 1):
                 if board[row][col] is None:
-                    return words  # Gap found, invalid
+                    return words
             
-            # Extend to full word
             while min_col > 0 and board[row][min_col - 1] is not None:
                 min_col -= 1
             while max_col < 14 and board[row][max_col + 1] is not None:
@@ -408,24 +394,20 @@ class GameService:
             if len(word) > 1:
                 words.append(word)
             
-            # Check vertical words for each placed tile
             for row, col in placed_positions:
                 vertical_word = self._get_vertical_word(board, row, col)
                 if len(vertical_word) > 1:
                     words.append(vertical_word)
         
-        # Vertical word
         elif same_col:
             col = cols[0]
             min_row = min(rows)
             max_row = max(rows)
             
-            # Check if all positions between min and max have tiles
             for row in range(min_row, max_row + 1):
                 if board[row][col] is None:
-                    return words  # Gap found, invalid
+                    return words
             
-            # Extend to full word
             while min_row > 0 and board[min_row - 1][col] is not None:
                 min_row -= 1
             while max_row < 14 and board[max_row + 1][col] is not None:
@@ -439,7 +421,6 @@ class GameService:
             if len(word) > 1:
                 words.append(word)
             
-            # Check horizontal words for each placed tile
             for row, col in placed_positions:
                 horizontal_word = self._get_horizontal_word(board, row, col)
                 if len(horizontal_word) > 1:
@@ -493,11 +474,8 @@ class GameService:
             ]
             
             for adj_row, adj_col in adjacent_positions:
-                # Check bounds
                 if 0 <= adj_row < 15 and 0 <= adj_col < 15:
-                    # If adjacent cell has a tile that's not in our placed positions, we're connected
                     if board[adj_row][adj_col] is not None:
-                        # Check if this adjacent tile is not one we just placed
                         if (adj_row, adj_col) not in placed_positions:
                             return True
         
@@ -513,7 +491,6 @@ class GameService:
             tile = board[row][col]
             letter_value = letter_values.get(tile['letter'], 0)
             
-            # Apply letter multipliers
             if (row, col) in TRIPLE_LETTER:
                 letter_value *= 3
             elif (row, col) in DOUBLE_LETTER:
@@ -521,7 +498,6 @@ class GameService:
             
             score += letter_value
             
-            # Apply word multipliers
             if (row, col) in TRIPLE_WORD:
                 word_multiplier *= 3
             elif (row, col) in DOUBLE_WORD:
@@ -529,16 +505,30 @@ class GameService:
         
         score *= word_multiplier
         
-        # Bonus for using all 7 tiles
         if len(tiles_played) == 7:
             score += 50
         
         return score
 
     def _is_valid_word(self, word: str, dictionary: str = "PL") -> bool:
-        """Check if word exists in dictionary, filtered by language"""
+        """Check if word exists in dictionary, filtered by language.
+        Handles blank tiles (_) by treating them as wildcards."""
         word_upper = word.upper()
-        return self.db.query(Dictionary).filter(
-            Dictionary.word == word_upper,
-            Dictionary.language == dictionary
-        ).first() is not None
+        word_len = len(word_upper)
+        
+        if '_' not in word_upper:
+            return self.db.query(Dictionary).filter(
+                Dictionary.word == word_upper,
+                Dictionary.language == dictionary
+            ).first() is not None
+        
+        from sqlalchemy import func
+        matching_words = self.db.query(Dictionary.word).filter(
+            Dictionary.language == dictionary,
+            func.length(Dictionary.word) == word_len
+        ).all()
+        
+        pattern = word_upper.replace('_', '.')
+        regex = re.compile(f'^{pattern}$')
+        
+        return any(regex.match(row[0]) for row in matching_words)

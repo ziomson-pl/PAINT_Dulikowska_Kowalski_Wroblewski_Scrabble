@@ -21,22 +21,18 @@ def seed_dictionary_copy(db: Session, filepath: str, language="PL"):
     print(f"Loading {language} dictionary from {filepath} using COPY...")
     
     try:
-        # Read file and create CSV format in memory
         csv_buffer = io.StringIO()
         with open(filepath, encoding="utf-8") as f:
             for line in f:
                 word = line.strip().upper()
                 if word:
-                    # Format: word\tlanguage (tab-separated for COPY)
                     csv_buffer.write(f"{word}\t{language}\n")
         
         csv_buffer.seek(0)
         
-        # Get raw connection for COPY command
         raw_connection = db.connection().connection
         cursor = raw_connection.cursor()
         
-        # Use COPY command for fast bulk insert
         cursor.copy_expert(
             "COPY dictionary (word, language) FROM STDIN",
             csv_buffer
@@ -74,7 +70,6 @@ def seed_users(db):
         db.commit()
         db.refresh(user)
 
-        # Create ranking
         ranking = Ranking(user_id=user.id)
         db.add(ranking)
         db.commit()
@@ -88,7 +83,6 @@ def seed_database():
 
     engine = create_engine(DATABASE_URL)
 
-    # Wait for database connection
     max_retries = 30
     for i in range(max_retries):
         try:
@@ -103,7 +97,6 @@ def seed_database():
                 print(f"Could not connect to database: {e}")
                 sys.exit(1)
 
-    # Create tables
     Base.metadata.create_all(bind=engine)
     print("Database tables created")
 
@@ -111,19 +104,16 @@ def seed_database():
     db = SessionLocal()
 
     try:
-        # ===== HYBRID APPROACH: CHECK IF DICTIONARY IS ALREADY SEEDED =====
         existing_words = db.query(Dictionary).first()
         
         if existing_words is not None:
             print("✓ Dictionary already seeded, skipping...")
         else:
             print("Dictionary empty, seeding with fast COPY command...")
-            # Seed dictionary using COPY (50-100x faster than Python inserts)
             seed_dictionary_copy(db, PL_FILE, "PL")
             seed_dictionary_copy(db, EN_FILE, "EN")
             print("✓ Dictionary seeding completed")
         
-        # Seed users (idempotent - checks if user exists)
         seed_users(db)
 
         print("✓ Database seeding completed!")

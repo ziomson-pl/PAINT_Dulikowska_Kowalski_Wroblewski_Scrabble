@@ -44,12 +44,12 @@ function Register() {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>Scrabble Game</h1>
-        <h2>Register</h2>
+        <h1>Scrabble</h1>
+        <h2>Rejestracja</h2>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Username:</label>
+            <label>Nazwa użytkownika:</label>
             <input
               type="text"
               value={username}
@@ -68,7 +68,7 @@ function Register() {
             />
           </div>
           <div className="form-group">
-            <label>Password:</label>
+            <label>Hasło:</label>
             <input
               type="password"
               value={password}
@@ -77,10 +77,10 @@ function Register() {
               minLength={6}
             />
           </div>
-          <button type="submit" className="btn-primary">Register</button>
+          <button type="submit" className="btn-primary">Zarejestruj się</button>
         </form>
         <p>
-          Already have an account? <a href="/login">Login</a>
+          Masz już konto? <a href="/login">Zaloguj się</a>
         </p>
       </div>
     </div>
