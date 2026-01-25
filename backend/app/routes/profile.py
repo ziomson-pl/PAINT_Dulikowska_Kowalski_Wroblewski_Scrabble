@@ -38,7 +38,6 @@ def get_rankings(db: Session = Depends(get_db), current_user: User = Depends(get
 @router.get("/history", response_model=List[GameHistoryResponse])
 def get_history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get user's game history"""
-    # Get all games where user participated
     game_players = db.query(GamePlayer).filter(GamePlayer.user_id == current_user.id).all()
     
     history = []
@@ -47,7 +46,6 @@ def get_history(db: Session = Depends(get_db), current_user: User = Depends(get_
         if not game:
             continue
         
-        # Get all players in the game to determine rank
         all_players = db.query(GamePlayer).filter(GamePlayer.game_id == game.id).order_by(GamePlayer.score.desc()).all()
         
         player_rank = 0

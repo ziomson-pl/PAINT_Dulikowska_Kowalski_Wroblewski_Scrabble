@@ -35,23 +35,16 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 def authenticate_user(db: Session, username: str, password: str):
-    import logging
-    logger = logging.getLogger(__name__)
-    
     try:
         user = db.query(User).filter(User.username == username).first()
         if not user:
-            logger.debug(f"User not found: {username}")
             return False
         
         if not verify_password(password, user.hashed_password):
-            logger.debug(f"Password verification failed for user: {username}")
             return False
         
-        logger.debug(f"Authentication successful for user: {username}")
         return user
-    except Exception as e:
-        logger.error(f"Error during authentication for {username}: {str(e)}", exc_info=True)
+    except Exception:
         return False
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):

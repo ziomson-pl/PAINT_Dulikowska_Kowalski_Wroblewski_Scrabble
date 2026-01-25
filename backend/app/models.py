@@ -13,7 +13,6 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    # Relationships
     games_as_player = relationship("GamePlayer", back_populates="user")
     messages = relationship("ChatMessage", back_populates="user")
 
@@ -22,15 +21,14 @@ class Game(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     game_name = Column(String(100), nullable=True)
-    dictionary = Column(String(10), default="PL", nullable=False)  # PL or EN
-    status = Column(String(20), default="waiting")  # waiting, active, finished
+    dictionary = Column(String(10), default="PL", nullable=False)
+    status = Column(String(20), default="waiting")
     current_turn = Column(Integer, default=0)
-    board_state = Column(JSON, nullable=True)  # 15x15 board
-    bag_tiles = Column(JSON, nullable=True)  # Remaining tiles
+    board_state = Column(JSON, nullable=True)
+    bag_tiles = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     finished_at = Column(DateTime, nullable=True)
     
-    # Relationships
     players = relationship("GamePlayer", back_populates="game")
     moves = relationship("GameMove", back_populates="game")
     messages = relationship("ChatMessage", back_populates="game")
@@ -41,12 +39,11 @@ class GamePlayer(Base):
     id = Column(Integer, primary_key=True, index=True)
     game_id = Column(Integer, ForeignKey("games.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    player_order = Column(Integer, nullable=False)  # 0-3
+    player_order = Column(Integer, nullable=False)
     score = Column(Integer, default=0)
-    rack = Column(JSON, nullable=True)  # 7 tiles
+    rack = Column(JSON, nullable=True)
     is_active = Column(Boolean, default=True)
     
-    # Relationships
     game = relationship("Game", back_populates="players")
     user = relationship("User", back_populates="games_as_player")
 
@@ -58,13 +55,12 @@ class GameMove(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     move_number = Column(Integer, nullable=False)
     word = Column(String(15), nullable=True)
-    tiles_played = Column(JSON, nullable=True)  # [{letter, row, col, is_blank}]
+    tiles_played = Column(JSON, nullable=True)
     score = Column(Integer, default=0)
     is_pass = Column(Boolean, default=False)
     is_exchange = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    # Relationships
     game = relationship("Game", back_populates="moves")
 
 class Dictionary(Base):
@@ -89,9 +85,8 @@ class Ranking(Base):
     losses = Column(Integer, default=0)
     total_score = Column(Integer, default=0)
     highest_score = Column(Integer, default=0)
-    rating = Column(Integer, default=1000)  # ELO-like rating
+    rating = Column(Integer, default=1000)
     
-    # Relationships
     user = relationship("User")
 
 class ChatMessage(Base):
@@ -103,6 +98,5 @@ class ChatMessage(Base):
     message = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    # Relationships
     game = relationship("Game", back_populates="messages")
     user = relationship("User", back_populates="messages")
