@@ -1,4 +1,5 @@
 import random
+import re
 from typing import List, Dict, Optional, Tuple
 from collections import Counter
 from datetime import datetime
@@ -479,9 +480,24 @@ class GameService:
         return score
 
     def _is_valid_word(self, word: str, dictionary: str = "PL") -> bool:
-        """Check if word exists in dictionary, filtered by language"""
+        """Check if word exists in dictionary, filtered by language.
+        Handles blank tiles (_) by treating them as wildcards."""
         word_upper = word.upper()
-        return self.db.query(Dictionary).filter(
-            Dictionary.word == word_upper,
-            Dictionary.language == dictionary
-        ).first() is not None
+        word_len = len(word_upper)
+        
+        if '_' not in word_upper:
+            return self.db.query(Dictionary).filter(
+                Dictionary.word == word_upper,
+                Dictionary.language == dictionary
+            ).first() is not None
+        
+        from sqlalchemy import func
+        matching_words = self.db.query(Dictionary.word).filter(
+            Dictionary.language == dictionary,
+            func.length(Dictionary.word) == word_len
+        ).all()
+        
+        pattern = word_upper.replace('_', '.')
+        regex = re.compile(f'^{pattern}$')
+        
+        return any(regex.match(row[0]) for row in matching_words)
