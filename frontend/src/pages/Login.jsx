@@ -7,8 +7,6 @@ function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [debugInfo, setDebugInfo] = useState('');
-  const [showDebug, setShowDebug] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -16,9 +14,7 @@ function Login() {
     setError('');
 
     try {
-      console.log('Attempting login for:', username);
       const response = await authAPI.login(username, password);
-      console.log('Login successful:', response.data);
       
       // Clear any old invalid tokens first
       localStorage.removeItem('token');
@@ -32,55 +28,20 @@ function Login() {
       localStorage.removeItem('token');
       localStorage.removeItem('username');
       
-      // Detailed error logging
-      const errorDetails = {
-        message: err.message,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        config: {
-          url: err.config?.url,
-          method: err.config?.method,
-          baseURL: err.config?.baseURL,
-          fullURL: err.config?.baseURL + err.config?.url,
-        },
-        request: err.request,
-      };
+      // Build error message
+      let errorMessage = 'Login failed';
       
-      console.error('Login error:', errorDetails);
-      
-      // Build detailed error message
-      let errorMessage = 'Login failed. ';
-      
-      if (err.response) {
-        // Server responded with error
-        const status = err.response.status;
-        const detail = err.response.data?.detail;
-        
-        errorMessage += `[Status: ${status}] `;
-        
-        if (detail) {
-          errorMessage += detail;
-        } else if (status === 401) {
-          errorMessage += 'Incorrect username or password';
-        } else if (status === 404) {
-          errorMessage += 'Login endpoint not found. Check API URL.';
-        } else if (status === 500) {
-          errorMessage += 'Server error. Check backend logs.';
-        } else {
-          errorMessage += `Server error (${status})`;
-        }
+      if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Incorrect username or password';
+      } else if (err.response?.status) {
+        errorMessage = `Error: ${err.response.status}`;
       } else if (err.request) {
-        // Request made but no response
-        errorMessage += 'No response from server. Check if backend is running at ' + 
-                       (import.meta.env.VITE_API_URL || 'http://localhost:8000');
-      } else {
-        // Error setting up request
-        errorMessage += 'Failed to send request: ' + err.message;
+        errorMessage = 'Cannot connect to server';
       }
       
       setError(errorMessage);
-      setDebugInfo(JSON.stringify(errorDetails, null, 2));
     }
   };
 

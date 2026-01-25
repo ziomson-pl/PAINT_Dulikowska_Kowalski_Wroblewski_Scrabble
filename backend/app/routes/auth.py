@@ -12,7 +12,6 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 @router.post("/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     try:
-        # Check if user exists
         db_user = db.query(User).filter(User.username == user.username).first()
         if db_user:
             raise HTTPException(status_code=400, detail="Username already registered")
@@ -21,7 +20,6 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         if db_user:
             raise HTTPException(status_code=400, detail="Email already registered")
         
-        # Create new user
         hashed_password = get_password_hash(user.password)
         db_user = User(
             username=user.username,
@@ -32,13 +30,11 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_user)
         
-        # Create ranking entry
         try:
             ranking = Ranking(user_id=db_user.id)
             db.add(ranking)
             db.commit()
         except Exception as e:
-            # If ranking creation fails, rollback user creation
             db.rollback()
             db.delete(db_user)
             db.commit()
